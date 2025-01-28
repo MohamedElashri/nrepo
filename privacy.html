@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <title>nrepo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d]">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-baseline gap-3">
+                    <a href="/" class="text-2xl font-bold text-[#24292f] dark:text-[#c9d1d9] hover:underline">nrepo</a>
+                    <span class="text-[#57606a] dark:text-[#8b949e]">Code Processing Made Simple</span>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="/privacy.html" class="text-[#24292f] dark:text-[#c9d1d9] hover:text-[#2da44e] dark:hover:text-[#2da44e]">Privacy</a>
+                    <button id="theme-toggle" class="p-2 rounded-lg bg-[#f6f8fa] dark:bg-[#161b22] hover:bg-gray-200 dark:hover:bg-[#30363d] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
+                        <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                        </svg>
+                        <svg id="theme-toggle-light-icon" class="hidden w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-3xl mx-auto">
+            <div class="mb-8">
+                <a href="/" class="text-3xl font-bold text-[#24292f] dark:text-[#c9d1d9] hover:underline">nrepo</a>
+            </div>
+            
+            <div class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm">
+                <h1 class="text-2xl font-bold text-[#24292f] dark:text-[#c9d1d9] mb-6">Privacy Policy</h1>
+                
+                <div class="space-y-6 text-[#24292f] dark:text-[#c9d1d9]">
+                    <section>
+                        <h2 class="text-xl font-semibold mb-3">Client-Side Processing</h2>
+                        <p class="mb-4">All file processing in nrepo occurs entirely in your browser. Your files are never uploaded to any server or stored anywhere outside your device.</p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xl font-semibold mb-3">Data Collection</h2>
+                        <p class="mb-4">We do not collect, store, or transmit any of your personal data or code. Everything stays on your local machine.</p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xl font-semibold mb-3">GitHub Pages Hosting</h2>
+                        <p class="mb-4">This website is hosted on GitHub Pages and adheres to their Terms of Service. While GitHub provides the hosting infrastructure, they do not have access to any of your processed files or code.</p>
+                    </section>
+
+                    <section>
+                        <h2 class="text-xl font-semibold mb-3">Third-Party Services</h2>
+                        <p>The only third-party services we use are:</p>
+                        <ul class="list-disc ml-6 mt-2">
+                            <li>GitHub Pages (for hosting)</li>
+                            <li>CDN services (for loading framework files)</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-[#f6f8fa] dark:bg-[#161b22] border-t border-[#d0d7de] dark:border-[#30363d] py-4 mt-8">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="text-sm text-[#57606a] dark:text-[#8b949e]">
+                2025 nrepo. All rights reserved.
+            </div>
+            <a href="https://github.com/MohamedElashri/nrepo" target="_blank" class="text-[#57606a] dark:text-[#8b949e] hover:text-[#24292f] dark:hover:text-[#c9d1d9]">
+                <i class="fab fa-github text-xl"></i>
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        // Theme toggle functionality
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+
+        // Change the icons inside the button based on previous settings
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            // Toggle icons
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            // If is set in localStorage
+            if (localStorage.getItem('theme')) {
+                if (localStorage.getItem('theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                }
+            } else {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -19,9 +19,32 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="bg-[#f6f8fa] dark:bg-[#161b22] border-b border-[#d0d7de] dark:border-[#30363d]">
+    <div class="container mx-auto px-4 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-baseline gap-3">
+                <a href="/" class="text-2xl font-bold text-[#24292f] dark:text-[#c9d1d9] hover:underline">nrepo</a>
+                <span class="text-[#57606a] dark:text-[#8b949e]">Code Processing Made Simple</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <a href="/privacy.html" class="text-[#24292f] dark:text-[#c9d1d9] hover:text-[#2da44e] dark:hover:text-[#2da44e]">Privacy</a>
+                <button id="theme-toggle" class="p-2 rounded-lg bg-[#f6f8fa] dark:bg-[#161b22] hover:bg-gray-200 dark:hover:bg-[#30363d] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
+                    <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+                    </svg>
+                    <svg id="theme-toggle-light-icon" class="hidden w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+<body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col">
     <!-- Theme Toggle Button -->
-    <button id="theme-toggle" class="fixed top-4 right-4 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+    <button id="theme-toggle" class="fixed top-4 right-4 p-2 rounded-lg bg-[#f6f8fa] dark:bg-[#161b22] hover:bg-gray-200 dark:hover:bg-[#30363d] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
         <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
             <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
         </svg>
@@ -30,30 +53,41 @@
         </svg>
     </button>
 
+<!-- Main Content -->
+
+    
     <main class="flex-grow container mx-auto px-4 py-8">
         <div class="max-w-4xl mx-auto space-y-6">
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-8">nrepo</h1>
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <div class="flex items-baseline gap-3">
+                        <a href="/" class="text-3xl font-bold text-[#24292f] dark:text-[#c9d1d9] hover:underline">nrepo</a>
+                        <span class="text-[#57606a] dark:text-[#8b949e]">Code Processing Made Simple</span>
+                    </div>
+                </div>
+                <a href="/privacy.html" class="text-[#24292f] dark:text-[#c9d1d9] hover:text-[#2da44e] dark:hover:text-[#2da44e]">Privacy Policy</a>
+            </div>
             
-            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm mb-6">
-                <p class="text-gray-700 dark:text-gray-300 mb-4">
+            <div class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm mb-6">
+                <p class="text-[#24292f] dark:text-[#c9d1d9] mb-4">
                     Combine multiple source files into a single text optimized for LLMs. Drop a folder or select directory to begin.
                 </p>
-                <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <div class="text-sm text-[#57606a] dark:text-[#8b949e] space-y-2">
                     <p>• Select your target model's token limit</p>
                     <p>• Optionally strip comments to save tokens</p>
                     <p>• Filter unwanted files/folders</p>
                 </div>
             </div>
             
-            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm mb-6">
+            <div class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm mb-6">
                 <div class="flex items-center justify-between mb-4">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Gitignore Settings</h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Optionally upload a .gitignore file first to skip processing ignored files</p>
+                        <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9]">Gitignore Settings</h3>
+                        <p class="text-sm text-[#57606a] dark:text-[#8b949e] mt-1">Optionally upload a .gitignore file first to skip processing ignored files (faster processing)</p>
                     </div>
                     <label class="inline-flex items-center">
-                        <input type="checkbox" id="use-gitignore" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Enable .gitignore</span>
+                        <input type="checkbox" id="use-gitignore" class="rounded border-[#d0d7de] dark:border-[#30363d] text-[#2da44e] focus:ring-[#2da44e] bg-white dark:bg-[#0d1117]">
+                        <span class="ml-2 text-[#24292f] dark:text-[#c9d1d9]">Enable .gitignore</span>
                     </label>
                 </div>
                 
@@ -73,19 +107,45 @@
                 </div>
             </div>
             
-            <div class="drop-zone p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors duration-200">
+            <div id="status-container" class="mt-6 mb-6 hidden">
+                <p id="status-message" class="text-xl font-semibold mb-3 text-blue-600 dark:text-blue-400 transition-all duration-500"></p>
+                <div class="w-full max-w-md mx-auto bg-gray-200 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+                    <div id="progress-bar" class="h-full w-0 bg-blue-500 dark:bg-blue-400 transition-all duration-300"></div>
+                </div>
+                <p id="progress-text" class="mt-2 text-sm text-gray-600 dark:text-gray-400"></p>
+            </div>
+
+            <div class="drop-zone p-8 border-2 border-dashed border-[#d0d7de] dark:border-[#30363d] rounded-lg text-center cursor-pointer hover:border-[#2da44e] dark:hover:border-[#2da44e] transition-colors duration-200">
                 <input type="file" id="fallbackInput" webkitdirectory directory multiple class="hidden">
-                <p class="text-lg mb-4">Drag & Drop Files/Folders Here</p>
-                <button id="selectDirBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+                <p class="text-lg mb-4 text-[#24292f] dark:text-[#c9d1d9]">Drag & Drop Files/Folders Here</p>
+                <button id="selectDirBtn" class="px-4 py-2 bg-[#2da44e] text-white rounded-md hover:bg-[#2c974b] focus:outline-none focus:ring-2 focus:ring-[#2da44e] focus:ring-offset-2 transition-colors duration-200">
                     Select Directory
                 </button>
-                <p id="drop-status" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p>
+                <p id="drop-status" class="mt-2 text-sm text-[#57606a] dark:text-[#8b949e]"></p>
             </div>
             
             <div id="size-warning" class="hidden mb-4">
-                <div class="bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded">
+                <div class="bg-[#ffebe9] dark:bg-[#ff262626] border-l-4 border-[#cf222e] text-[#cf222e] dark:text-[#ff7b72] p-4 rounded">
                     <div class="font-bold text-lg mb-1" id="warning-title"></div>
                     <p id="warning-message"></p>
+                </div>
+            </div>
+
+            <div id="token-warning" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                    <h3 class="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Token Limit Warning</h3>
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">
+                        The processed content exceeds the model's token limit. Continuing may result in truncated or incomplete output.
+                    </p>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6" id="token-warning-stats"></p>
+                    <div class="flex justify-end space-x-4">
+                        <button id="token-warning-continue" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
+                            Continue Anyway
+                        </button>
+                        <button id="token-warning-cancel" class="px-4 py-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+                            Cancel
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -260,12 +320,12 @@ Thumbs.db
         </div>
     </main>
 
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4">
+    <footer class="bg-[#f6f8fa] dark:bg-[#161b22] border-t border-[#d0d7de] dark:border-[#30363d] py-4">
         <div class="container mx-auto px-4 flex justify-between items-center">
-            <div class="text-sm text-gray-600 dark:text-gray-400">
+            <div class="text-sm text-[#57606a] dark:text-[#8b949e]">
                 2025 nrepo. All rights reserved.
             </div>
-            <a href="https://github.com/MohamedElashri/nrepo" target="_blank" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            <a href="https://github.com/MohamedElashri/nrepo" target="_blank" class="text-[#57606a] dark:text-[#8b949e] hover:text-[#24292f] dark:hover:text-[#c9d1d9]">
                 <i class="fab fa-github text-xl"></i>
             </a>
         </div>
