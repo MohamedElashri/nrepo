@@ -1,28 +1,150 @@
 // Utility Functions
 const isTextFile = (filename) => {
-    const textExtensions = ['.txt', '.js', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.html', '.css', '.json', '.xml', '.md', '.sh', '.bat', '.ps1', '.yaml', '.yml', '.ini', '.cfg', '.conf', '.log'];
+    const textExtensions = [
+      // C/C++ and Related
+      '.c', '.cpp', '.h', '.hpp', '.cc', '.hh', '.cxx', '.hxx', '.c++', '.h++',
+      '.cp', '.cpp', '.i', '.ii', '.tcc', '.inl', '.inc', '.ixx', '.ipp', 
+      '.tpp', '.cuh', '.cu', '.cl', // CUDA and OpenCL
+      // Fortran and Legacy Scientific
+      '.f', '.for', '.f77', '.f90', '.f95', '.f03', '.f08', '.ftn', '.fpp',
+      '.F', '.FOR', '.F77', '.F90', '.F95', '.F03', '.F08',
+      '.cob', '.cbl', '.cpy', '.cobs', // COBOL
+      '.ada', '.adb', '.ads', // Ada
+      '.pas', '.pp', '.inc', // Pascal
+      '.prg', '.frm', '.bas', '.cls', '.vbs', // BASIC variants
+      // Modern Languages
+      '.txt', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.vue', '.svelte',
+      '.py', '.pyw', '.pyc', '.pyo', '.pyd', '.pyi', '.ipynb', '.rpy',
+      '.java', '.class', '.jar', '.war', '.ear', '.jsp', '.jspx',
+      '.cs', '.vb', '.fs', '.fsx', '.fsi', '.fsscript',
+      '.go', '.mod', '.sum',
+      '.rb', '.rbw', '.rake', '.gemspec', '.rbx', '.ru',
+      '.php', '.phtml', '.php3', '.php4', '.php5', '.php7', '.php8', '.phps', '.inc',
+      '.pl', '.pm', '.t', '.pod',
+      '.swift', '.m', '.mm',
+      '.rs', '.rlib',
+      '.scala', '.sc',
+      '.groovy', '.gvy', '.gy', '.gsh',
+      '.kt', '.kts',
+      '.lua', '.luac',
+      '.r', '.rdata', '.rds',
+      '.matlab', '.m', '.mat',
+      '.f', '.for', '.f90', '.f95',
+      '.hs', '.lhs', '.hsc',
+      '.clj', '.cljs', '.cljc', '.edn',
+      '.dart',
+      '.ex', '.exs',
+      '.erl', '.hrl',
+      // Web Technologies
+      '.html', '.htm', '.xhtml', '.shtml', '.asp', '.aspx', '.jsp', '.css', '.scss', '.sass', '.less',
+      '.xml', '.xsl', '.xslt', '.svg', '.wsdl', '.dtd',
+      // Shell and Scripts
+      '.sh', '.bash', '.zsh', '.fish', '.ksh', '.tcsh', '.csh',
+      '.bat', '.cmd', '.ps1', '.psm1', '.psd1',
+      // Config Files
+      '.json', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.properties',
+      '.env', '.rc', '.reg',
+      // Documentation
+      '.md', '.markdown', '.rst', '.asciidoc', '.adoc', '.tex',
+      // Build and Version Control
+      '.gradle', '.maven', '.pom', '.ivy', '.ant',
+      '.dockerfile', '.dockerignore',
+      '.gitignore', '.gitattributes', '.hgignore',
+      // Others
+      '.log', '.sql', '.ddl', '.dml'];
     const ext = '.' + filename.split('.').pop().toLowerCase();
     return textExtensions.includes(ext);
-};
-
-const stripComments = (content, extension) => {
-    // Basic comment stripping for common languages
-    switch(extension) {
-        case '.js':
-        case '.java':
-        case '.c':
-        case '.cpp':
-            content = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-            break;
-        case '.py':
-            content = content.replace(/'''[\s\S]*?'''|#.*/g, '');
-            break;
-        case '.html':
-            content = content.replace(/<!--[\s\S]*?-->/g, '');
-            break;
-    }
-    return content;
-};
+    };
+    
+    const stripComments = (content, extension) => {
+        // Convert extension to lowercase for case-insensitive comparison
+        extension = extension.toLowerCase();
+        
+        // Split content into lines for processing
+        const lines = content.split('\n');
+        const result = [];
+        let inBlockComment = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            
+            // Skip empty lines
+            if (!line.trim()) continue;
+            
+            // Handle C-style languages
+            if (['.js', '.jsx', '.ts', '.tsx', '.java', '.c', '.cpp', '.cs', '.go', '.php'].includes(extension)) {
+                if (inBlockComment) {
+                    if (line.includes('*/')) {
+                        line = line.substring(line.indexOf('*/') + 2);
+                        inBlockComment = false;
+                    } else {
+                        continue;
+                    }
+                }
+                
+                // Check for block comment start
+                if (line.includes('/*')) {
+                    if (line.includes('*/')) {
+                        // Block comment starts and ends on same line
+                        line = line.substring(0, line.indexOf('/*')) + 
+                              line.substring(line.indexOf('*/') + 2);
+                    } else {
+                        // Block comment starts but doesn't end
+                        line = line.substring(0, line.indexOf('/*'));
+                        inBlockComment = true;
+                    }
+                }
+                
+                // Handle line comments
+                if (!inBlockComment && line.includes('//')) {
+                    line = line.substring(0, line.indexOf('//'));
+                }
+            }
+            
+            // Handle Python/Ruby style
+            else if (['.py', '.rb'].includes(extension)) {
+                if (line.trim().startsWith('#')) {
+                    continue;
+                }
+            }
+            
+            // Handle shell scripts and YAML
+            else if (['.sh', '.bash', '.yaml', '.yml'].includes(extension)) {
+                if (line.trim().startsWith('#')) {
+                    continue;
+                }
+            }
+            
+            // Handle HTML/XML
+            else if (['.html', '.xml', '.svg'].includes(extension)) {
+                if (inBlockComment) {
+                    if (line.includes('-->')) {
+                        line = line.substring(line.indexOf('-->') + 3);
+                        inBlockComment = false;
+                    } else {
+                        continue;
+                    }
+                }
+                if (line.includes('<!--')) {
+                    if (line.includes('-->')) {
+                        line = line.substring(0, line.indexOf('<!--')) + 
+                              line.substring(line.indexOf('-->') + 3);
+                    } else {
+                        line = line.substring(0, line.indexOf('<!--'));
+                        inBlockComment = true;
+                    }
+                }
+            }
+            
+            // Only add non-empty lines after processing
+            if (line.trim()) {
+                result.push(line);
+            }
+        }
+        
+        return result.join('\n');
+    };
+    
 
 const updateProgress = (current, total) => {
     const progressBar = document.getElementById('progress-bar');

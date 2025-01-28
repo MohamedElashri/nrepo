@@ -112,43 +112,6 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Model Settings</h3>
-                <div class="mb-4">
-                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Target Model:</label>
-                    <select 
-                        id="model-select" 
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    >
-                        <option value="128000">GPT-4o (128K tokens)</option>
-                        <option value="150000">O1 (128K tokens)</option>
-                        <option value="200000">Claude 3 Opus (200K tokens)</option>
-                        <option value="100000">Claude 3.5 Sonnet (200K tokens)</option>
-                        <option value="2000000">Claude 3.5 Haiku (200k tokens)</option>
-                        <option value="2000000">Gemini Experimental 1206 (2M tokens)</option>
-                        <option value="2000000">Gemini 2.0 Flash (1M tokens)</option>
-                        <option value="1000000">Gemini 1.5 Pro (1M tokens)</option>
-                        <option value="128000">DeepSeek-R1 (131k tokens)</option>
-                        <option value="128000">DeepSeek-V3 (131k tokens)</option>
-                        <option value="32000">QwQ-32B-Preview (32K tokens)</option>
-                        <option value="32000">Qwen2.5 72B Instruct (131K tokens)</option>
-                    </select>
-                </div>
-                <div class="mt-4">
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" id="strip-comments" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Strip comments from code files</span>
-                    </label>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Removes comments from common programming languages to reduce token count</p>
-                </div>
-                <div class="mt-4">
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" id="include-binary" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Include binary files</span>
-                    </label>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Lists binary files with their paths (no content)</p>
-                </div>
-            </div>
             
             <div class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm mb-6">
                 <div class="flex items-center justify-between mb-4">
