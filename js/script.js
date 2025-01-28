@@ -269,6 +269,95 @@ const processFile = async (file, filePath) => {
     }
 };
 
+class FileNode {
+    constructor(name, isDirectory = false) {
+        this.name = name;
+        this.isDirectory = isDirectory;
+        this.children = new Map();
+    }
+}
+
+const createFileTree = (files) => {
+    const root = new FileNode('root', true);
+    
+    for (const file of files) {
+        const path = file.webkitRelativePath || file.name;
+        const parts = path.split('/');
+        let currentNode = root;
+        
+        for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            const isLast = i === parts.length - 1;
+            
+            if (!currentNode.children.has(part)) {
+                currentNode.children.set(part, new FileNode(part, !isLast));
+            }
+            currentNode = currentNode.children.get(part);
+        }
+    }
+    
+    return root;
+};
+
+const generateTreeHTML = (node, prefix = '', isLast = true, isRoot = true) => {
+    if (isRoot) {
+        return Array.from(node.children.values())
+            .map((child, index, array) => 
+                generateTreeHTML(child, '', index === array.length - 1, false))
+            .join('');
+    }
+
+    const marker = isLast ? '└── ' : '├── ';
+    const childPrefix = isLast ? '    ' : '│   ';
+    
+    let html = `<div class="tree-line">${prefix}${marker}${node.name}</div>`;
+    
+    if (node.isDirectory) {
+        const children = Array.from(node.children.values());
+        const childrenHTML = children
+            .map((child, index) => 
+                generateTreeHTML(child, prefix + childPrefix, index === children.length - 1, false))
+            .join('');
+        html += childrenHTML;
+    }
+    
+    return html;
+};
+
+const displayFileTree = (files) => {
+    const treeContainer = document.getElementById('file-tree');
+    if (!treeContainer) {
+        const container = document.createElement('div');
+        container.id = 'file-tree';
+        container.className = 'mt-4 p-4 bg-gray-800 rounded-lg overflow-x-auto';
+        
+        const header = document.createElement('div');
+        header.className = 'text-white font-semibold mb-2';
+        header.textContent = 'This is the tree structure of the code:';
+        
+        const tree = document.createElement('pre');
+        tree.className = 'text-gray-300 font-mono text-sm';
+        
+        const root = createFileTree(files);
+        tree.innerHTML = generateTreeHTML(root);
+        
+        container.appendChild(header);
+        container.appendChild(tree);
+        
+        // Insert after the drop zone
+        const dropZone = document.querySelector('.drop-zone');
+        if (dropZone) {
+            dropZone.parentNode.insertBefore(container, dropZone.nextSibling);
+        }
+    } else {
+        const root = createFileTree(files);
+        const tree = treeContainer.querySelector('pre');
+        if (tree) {
+            tree.innerHTML = generateTreeHTML(root);
+        }
+    }
+};
+
 const processFiles = async (files) => {
     console.log('Processing files:', files.length);
     window.isProcessingCancelled = false;
@@ -285,6 +374,20 @@ const processFiles = async (files) => {
     if (resultContainer) resultContainer.classList.add('hidden');
 
     try {
+        // Generate and display the file tree
+        displayFileTree(files);
+        
+        // Generate tree structure for the output
+        const root = createFileTree(files);
+        const treeStructure = '// This is the tree structure of the code:\n' + 
+                            generateTreeHTML(root)
+                                .replace(/<div class="tree-line">/g, '')
+                                .replace(/<\/div>/g, '\n') +
+                            '\n// End of tree structure\n\n';
+        
+        // Store the tree structure
+        window.processedText = treeStructure;
+        
         for (const file of files) {
             if (window.isProcessingCancelled) break;
             
@@ -319,7 +422,19 @@ const displayResult = () => {
     const resultTextarea = document.getElementById('result');
     if (resultTextarea && window.processedText) {
         console.log('Displaying result, text length:', window.processedText.length);
-        resultTextarea.value = window.processedText;
+        
+        // Ensure the tree structure is at the beginning of the text
+        const treeEndMarker = '// End of tree structure\n\n';
+        const hasTree = window.processedText.includes(treeEndMarker);
+        
+        if (!hasTree && window.processedText.trim()) {
+            // If there's no tree structure but we have content, 
+            // this might be from a single file upload
+            resultTextarea.value = window.processedText;
+        } else {
+            // Tree structure is already included
+            resultTextarea.value = window.processedText;
+        }
     }
 };
 
