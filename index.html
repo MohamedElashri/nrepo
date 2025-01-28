@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <title>nrepo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="fixed top-4 right-4 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+        <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5 text-gray-800" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+        </svg>
+        <svg id="theme-toggle-light-icon" class="hidden w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"></path>
+        </svg>
+    </button>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-white mb-8">nrepo</h1>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm mb-6">
+                <p class="text-gray-700 dark:text-gray-300 mb-4">
+                    Combine multiple source files into a single text optimized for LLMs. Drop a folder or select directory to begin.
+                </p>
+                <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                    <p>• Select your target model's token limit</p>
+                    <p>• Optionally strip comments to save tokens</p>
+                    <p>• Filter unwanted files/folders</p>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Gitignore Settings</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Optionally upload a .gitignore file first to skip processing ignored files</p>
+                    </div>
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" id="use-gitignore" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                        <span class="ml-2 text-gray-700 dark:text-gray-300">Enable .gitignore</span>
+                    </label>
+                </div>
+                
+                <div id="gitignore-upload" class="hidden">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-grow">
+                            <div class="gitignore-drop-zone bg-gray-50 dark:bg-gray-700 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center transition-colors duration-200 hover:border-gray-400 dark:hover:border-gray-500">
+                                <div class="text-gray-600 dark:text-gray-400">Drop .gitignore or click to upload</div>
+                                <input type="file" id="gitignore-input" accept=".gitignore" class="hidden" />
+                            </div>
+                        </div>
+                        <button id="clear-gitignore" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200 hidden">
+                            Clear
+                        </button>
+                    </div>
+                    <div id="gitignore-status" class="mt-2 text-sm text-gray-600 dark:text-gray-400"></div>
+                </div>
+            </div>
+            
+            <div class="drop-zone p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors duration-200">
+                <input type="file" id="fallbackInput" webkitdirectory directory multiple class="hidden">
+                <p class="text-lg mb-4">Drag & Drop Files/Folders Here</p>
+                <button id="selectDirBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200">
+                    Select Directory
+                </button>
+                <p id="drop-status" class="mt-2 text-sm text-gray-500 dark:text-gray-400"></p>
+            </div>
+            
+            <div id="size-warning" class="hidden mb-4">
+                <div class="bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-700 dark:text-red-300 p-4 rounded">
+                    <div class="font-bold text-lg mb-1" id="warning-title"></div>
+                    <p id="warning-message"></p>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Model Settings</h3>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Select Model:</label>
+                    <select 
+                        id="model-select" 
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                        <option value="128000">GPT-4o (128K tokens)</option>
+                        <option value="150000">O1 (128K tokens)</option>
+                        <option value="200000">Claude 3 Opus (200K tokens)</option>
+                        <option value="100000">Claude 3.5 Sonnet (200K tokens)</option>
+                        <option value="2000000">Claude 3.5 Haiku (200k tokens)</option>
+                        <option value="2000000">Gemini Experimental 1206 (2M tokens)</option>
+                        <option value="2000000">Gemini 2.0 Flash (1M tokens)</option>
+                        <option value="1000000">Gemini 1.5 Pro (1M tokens)</option>
+                        <option value="128000">DeepSeek-R1 (131k tokens)</option>
+                        <option value="128000">DeepSeek-V3 (131k tokens)</option>
+                        <option value="32000">QwQ-32B-Preview (32K tokens)</option>
+                        <option value="32000">Qwen2.5 72B Instruct (131K tokens)</option>
+                    </select>
+                </div>
+                <div class="mt-4">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" id="strip-comments" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                        <span class="ml-2 text-gray-700 dark:text-gray-300">Strip comments from code files</span>
+                    </label>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Removes comments from common programming languages to reduce token count</p>
+                </div>
+                <div class="mt-4">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" id="include-binary" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                        <span class="ml-2 text-gray-700 dark:text-gray-300">Include binary files</span>
+                    </label>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Lists binary files with their paths (no content)</p>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Filters</h3>
+                <div class="mb-4">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" id="use-gitignore" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                        <span class="ml-2 text-gray-700 dark:text-gray-300">Use .gitignore patterns if available</span>
+                    </label>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Automatically add patterns from .gitignore files found in the uploaded directory</p>
+                </div>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Exclude patterns (one per line):</label>
+                    <textarea 
+                        id="exclude-patterns" 
+                        rows="4" 
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >node_modules/
+.git/
+.svn/
+.hg/
+.idea/
+.vscode/
+.vs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
+*.class
+*.exe
+*.obj
+*.o
+*.a
+*.lib
+*.egg
+*.egg-info/
+dist/
+build/
+coverage/
+.coverage
+.env
+.env.*
+*.log
+*.lock
+package-lock.json
+yarn.lock
+*.min.js
+*.min.css
+*.map
+vendor/
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+*.sqlite
+*.sqlite3
+*.db</textarea>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Output Format</h3>
+                <div>
+                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Pattern:</label>
+                    <input 
+                        type="text" 
+                        id="format-pattern"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-2"
+                        value="// File: {path}{filename}{newline}{content}{newline}{newline}"
+                    />
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        Available variables:
+                        <br />
+                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{path}</code> - File path
+                        <br />
+                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{filename}</code> - File name
+                        <br />
+                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{content}</code> - File content
+                        <br />
+                        <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{newline}</code> - New line character
+                    </div>
+                </div>
+            </div>
+
+            <div class="loader hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="text-gray-600 dark:text-gray-400">Processing files...</div>
+                        <div class="text-sm font-medium text-blue-500 dark:text-blue-400">
+                            Files processed: <span id="files-counter">0</span>
+                        </div>
+                    </div>
+                    <div class="current-file font-mono text-sm text-gray-600 dark:text-gray-400 truncate"></div>
+                </div>
+            </div>
+
+            <div class="result-container hidden space-y-4">
+                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Characters</div>
+                            <div id="char-count" class="text-2xl font-semibold text-gray-800 dark:text-white">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Words</div>
+                            <div id="word-count" class="text-2xl font-semibold text-gray-800 dark:text-white">0</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-sm text-gray-600 dark:text-gray-400">Estimated Tokens</div>
+                            <div id="token-count" class="text-2xl font-semibold text-gray-800 dark:text-white">0</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <textarea 
+                    id="result" 
+                    readonly 
+                    class="w-full h-96 p-4 font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                ></textarea>
+                
+                <button 
+                    id="copy-btn"
+                    class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200"
+                >Copy to Clipboard</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-4">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+                2025 nrepo. All rights reserved.
+            </div>
+            <a href="https://github.com/MohamedElashri/nrepo" target="_blank" class="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+                <i class="fab fa-github text-xl"></i>
+            </a>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <!-- 100% privacy-first analytics -->
+    <script async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
+</body>
+</html>

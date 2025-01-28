@@ -1,0 +1,60 @@
+/* Custom styles */
+/* Theme transition */
+* {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
+}
+
+/* Dark mode overrides */
+.dark .github-corner svg {
+    fill: #e5e7eb;
+    color: #1f2937;
+}
+
+/* Theme toggle button */
+#theme-toggle-dark-icon,
+#theme-toggle-light-icon {
+    transition: transform 0.2s ease;
+}
+
+#theme-toggle:hover #theme-toggle-dark-icon,
+#theme-toggle:hover #theme-toggle-light-icon {
+    transform: scale(1.1);
+}
+
+/* Drop zone styles */
+.drop-zone.dragover {
+    background-color: rgb(243 244 246);
+    border-color: rgb(156 163 175);
+}
+
+.dark .drop-zone.dragover {
+    background-color: rgb(31 41 55);
+    border-color: rgb(75 85 99);
+}
+
+/* GitHub corner styles */
+.github-corner {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 50;
+}
+
+.github-corner:hover .octo-arm {
+    animation: octocat-wave 560ms ease-in-out;
+}
+
+@keyframes octocat-wave {
+    0%, 100% { transform: rotate(0) }
+    20%, 60% { transform: rotate(-25deg) }
+    40%, 80% { transform: rotate(10deg) }
+}
+
+@media (max-width: 500px) {
+    .github-corner:hover .octo-arm {
+        animation: none;
+    }
+    .github-corner .octo-arm {
+        animation: octocat-wave 560ms ease-in-out;
+    }
+}
