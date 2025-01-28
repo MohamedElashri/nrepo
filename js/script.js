@@ -1,3 +1,312 @@
+// Utility Functions
+const isTextFile = (filename) => {
+    const textExtensions = ['.txt', '.js', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.html', '.css', '.json', '.xml', '.md', '.sh', '.bat', '.ps1', '.yaml', '.yml', '.ini', '.cfg', '.conf', '.log'];
+    const ext = '.' + filename.split('.').pop().toLowerCase();
+    return textExtensions.includes(ext);
+};
+
+const stripComments = (content, extension) => {
+    // Basic comment stripping for common languages
+    switch(extension) {
+        case '.js':
+        case '.java':
+        case '.c':
+        case '.cpp':
+            content = content.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
+            break;
+        case '.py':
+            content = content.replace(/'''[\s\S]*?'''|#.*/g, '');
+            break;
+        case '.html':
+            content = content.replace(/<!--[\s\S]*?-->/g, '');
+            break;
+    }
+    return content;
+};
+
+const updateProgress = (current, total) => {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const currentFile = document.getElementById('current-file');
+    const filesCounter = document.getElementById('files-counter');
+    
+    const percentage = Math.round((current / total) * 100);
+    
+    if (progressBar) {
+        progressBar.style.width = `${percentage}%`;
+        progressBar.classList.add('transition-all', 'duration-300');
+    }
+    
+    if (progressText) {
+        progressText.textContent = `Processing: ${current.toLocaleString()} of ${total.toLocaleString()} files (${percentage}%)`;
+    }
+    
+    if (filesCounter) {
+        filesCounter.textContent = current.toLocaleString();
+    }
+};
+
+const toggleStatus = (show, message = '') => {
+    const statusContainer = document.getElementById('status-container');
+    const statusMessage = document.getElementById('status-message');
+    const progressBar = document.getElementById('progress-bar');
+    
+    if (statusContainer) {
+        if (show) {
+            statusContainer.classList.remove('hidden');
+            if (statusMessage && message) {
+                statusMessage.textContent = message;
+                statusMessage.classList.add('opacity-0');
+                setTimeout(() => {
+                    statusMessage.classList.remove('opacity-0');
+                    statusMessage.classList.add('opacity-100');
+                }, 10);
+            }
+            if (progressBar) {
+                progressBar.style.width = '0%';
+            }
+        } else {
+            if (statusMessage) {
+                statusMessage.classList.add('opacity-0');
+            }
+            setTimeout(() => {
+                statusContainer.classList.add('hidden');
+            }, 300);
+        }
+    }
+};
+
+const shouldIgnoreFile = (filePath) => {
+    const excludePatternsTextarea = document.getElementById('exclude-patterns');
+    const useGitignore = document.getElementById('use-gitignore')?.checked;
+    
+    if (!filePath) return false;
+    
+    // Check custom exclude patterns
+    if (excludePatternsTextarea) {
+        const patterns = excludePatternsTextarea.value
+            .split('\n')
+            .map(p => p.trim())
+            .filter(p => p && !p.startsWith('#'));
+            
+        for (const pattern of patterns) {
+            if (filePath.includes(pattern)) {
+                return true;
+            }
+        }
+    }
+    
+    // Check gitignore patterns
+    if (useGitignore && window.gitignorePatterns) {
+        for (const pattern of window.gitignorePatterns) {
+            if (filePath.includes(pattern)) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+};
+
+const processFile = async (file, filePath) => {
+    if (window.isProcessingCancelled) return;
+
+    const shouldIncludeBinary = document.getElementById('include-binary')?.checked;
+    if (shouldIgnoreFile(filePath)) {
+        console.log('Ignoring file:', filePath);
+        return;
+    }
+
+    try {
+        if (isTextFile(file.name)) {
+            const content = await file.text();
+            const shouldStripComments = document.getElementById('strip-comments')?.checked;
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            let processedContent = shouldStripComments ? stripComments(content, ext) : content;
+            
+            if (processedContent.trim()) {
+                const formatPattern = document.getElementById('format-pattern')?.value || 
+                    '// File: {path}{filename}{newline}{content}{newline}{newline}';
+                
+                const formattedContent = formatPattern
+                    .replace('{path}', filePath.substring(0, filePath.lastIndexOf('/') + 1))
+                    .replace('{filename}', filePath.substring(filePath.lastIndexOf('/') + 1))
+                    .replace('{content}', processedContent)
+                    .replace(/{newline}/g, '\n');
+
+                window.processedText += formattedContent;
+                console.log('Added content for file:', filePath, 'Current length:', window.processedText.length);
+            }
+        } else if (shouldIncludeBinary) {
+            window.processedText += `Binary File: ${filePath}\n\n`;
+        } else {
+            console.log('Skipping binary file:', filePath);
+        }
+    } catch (error) {
+        console.error('Error processing file:', filePath, error);
+    }
+};
+
+const processFiles = async (files) => {
+    console.log('Processing files:', files.length);
+    window.isProcessingCancelled = false;
+    window.processedText = '';
+    window.processedFilesCount = 0;
+    window.totalFilesToProcess = files.length;
+
+    const loader = document.querySelector('.loader');
+    const resultContainer = document.querySelector('.result-container');
+    const currentFile = document.getElementById('current-file');
+
+    toggleStatus(true, 'Beginning File Processing...');
+    if (loader) loader.classList.remove('hidden');
+    if (resultContainer) resultContainer.classList.add('hidden');
+
+    try {
+        for (const file of files) {
+            if (window.isProcessingCancelled) break;
+            
+            const filePath = file.webkitRelativePath || file.name;
+            if (currentFile) {
+                currentFile.textContent = `Processing: ${filePath}`;
+            }
+            
+            await processFile(file, filePath);
+            window.processedFilesCount++;
+            updateProgress(window.processedFilesCount, window.totalFilesToProcess);
+        }
+
+        if (!window.isProcessingCancelled) {
+            toggleStatus(true, 'Processing Complete!');
+            displayResult();
+            updateStats();
+        } else {
+            toggleStatus(true, 'Processing Cancelled');
+        }
+    } catch (error) {
+        console.error('Error processing files:', error);
+        toggleStatus(true, 'Error processing files');
+    } finally {
+        if (loader) loader.classList.add('hidden');
+        if (resultContainer) resultContainer.classList.remove('hidden');
+        setTimeout(() => toggleStatus(false), 3000);
+    }
+};
+
+const displayResult = () => {
+    const resultTextarea = document.getElementById('result');
+    if (resultTextarea && window.processedText) {
+        console.log('Displaying result, text length:', window.processedText.length);
+        resultTextarea.value = window.processedText;
+    }
+};
+
+const formatNumber = (num) => {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toLocaleString();
+};
+
+const getModelLimits = () => {
+    const modelSelect = document.getElementById('model-select');
+    const tokenLimit = parseInt(modelSelect?.value || '128000');
+    const charLimit = tokenLimit * 3.5; // Using 3.5 characters per token as an average
+    return { tokenLimit, charLimit };
+};
+
+const updateStats = () => {
+    console.log('Updating stats');
+    const charCountElement = document.getElementById('char-count');
+    const wordCountElement = document.getElementById('word-count');
+    const tokenCountElement = document.getElementById('token-count');
+    const filesCounterElement = document.getElementById('files-counter');
+
+    if (!window.processedText) {
+        console.log('No processed text available');
+        return;
+    }
+
+    const { tokenLimit, charLimit } = getModelLimits();
+    const text = window.processedText;
+    const chars = text.length;
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const tokens = Math.ceil(chars / 3.5); // Using 3.5 characters per token as an average
+
+    console.log('Stats:', { chars, words, tokens, files: window.processedFilesCount, tokenLimit, charLimit });
+
+    if (charCountElement) charCountElement.textContent = `${chars.toLocaleString()} / ${charLimit.toLocaleString()}`;
+    if (wordCountElement) wordCountElement.textContent = words.toLocaleString();
+    if (tokenCountElement) tokenCountElement.textContent = `${formatNumber(tokens)} / ${formatNumber(tokenLimit)}`;
+    if (filesCounterElement) filesCounterElement.textContent = window.processedFilesCount.toLocaleString();
+
+    // Show warning if limits are exceeded
+    const sizeWarning = document.getElementById('size-warning');
+    const warningTitle = document.getElementById('warning-title');
+    const warningMessage = document.getElementById('warning-message');
+
+    if (sizeWarning && warningTitle && warningMessage) {
+        if (tokens > tokenLimit) {
+            sizeWarning.classList.remove('hidden');
+            warningTitle.textContent = 'Token Limit Exceeded';
+            warningMessage.textContent = `The processed text exceeds the selected model's token limit by ${formatNumber(tokens - tokenLimit)} tokens.`;
+        } else {
+            sizeWarning.classList.add('hidden');
+        }
+    }
+};
+
+// Default exclude patterns
+const defaultExcludePatterns = `node_modules/
+.git/
+.svn/
+.hg/
+.idea/
+.vscode/
+.vs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
+*.class
+*.exe
+*.obj
+*.o
+*.a
+*.lib
+*.egg
+*.egg-info/
+dist/
+build/
+coverage/
+.coverage
+.env
+.env.*
+*.log
+*.lock
+package-lock.json
+yarn.lock
+*.min.js
+*.min.css
+*.map
+vendor/
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+*.sqlite
+*.sqlite3
+*.db`;
+
 // Theme Toggle Functionality
 const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
 const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
@@ -35,615 +344,221 @@ themeToggleBtn.addEventListener('click', function() {
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Gitignore handling
-    let gitignorePatterns = [];
-    const useGitignoreCheckbox = document.getElementById('use-gitignore');
-    const gitignoreUpload = document.getElementById('gitignore-upload');
-    const gitignoreDropZone = document.querySelector('.gitignore-drop-zone');
-    const gitignoreInput = document.getElementById('gitignore-input');
-    const gitignoreStatus = document.getElementById('gitignore-status');
-    const clearGitignoreBtn = document.getElementById('clear-gitignore');
+// Wait for the DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing file handlers');
 
-    // Main file handling elements
-    const dropZone = document.querySelector('.drop-zone');
-    const loader = document.querySelector('.loader');
-    const resultContainer = document.querySelector('.result-container');
-    const resultTextarea = document.getElementById('result');
-    const stripCommentsCheckbox = document.getElementById('strip-comments');
-    const includeBinaryCheckbox = document.getElementById('include-binary');
-    const excludePatternsTextarea = document.getElementById('exclude-patterns');
-    const formatPatternInput = document.getElementById('format-pattern');
+    // Initialize global state
+    window.processedText = '';
+    window.processedFilesCount = 0;
+    window.totalFilesToProcess = 0;
+    window.isProcessingCancelled = false;
+    window.gitignorePatterns = [];
+
+    // Get DOM elements for file handling
+    const fileInput = document.getElementById('fileInput');
+    const dirInput = document.getElementById('dirInput');
+    const selectFilesBtn = document.getElementById('selectFilesBtn');
     const selectDirBtn = document.getElementById('selectDirBtn');
-    const fallbackInput = document.getElementById('fallbackInput');
-    const dropStatus = document.getElementById('drop-status');
+    const dropZone = document.querySelector('.drop-zone');
     const copyBtn = document.getElementById('copy-btn');
-    
-    // Progress elements
-    const statusContainer = document.getElementById('status-container');
-    const statusMessage = document.getElementById('status-message');
-    const progressBar = document.getElementById('progress-bar');
-    const progressText = document.getElementById('progress-text');
-    
-    // Token warning elements
-    const tokenWarning = document.getElementById('token-warning');
-    const tokenWarningStats = document.getElementById('token-warning-stats');
-    const tokenWarningContinue = document.getElementById('token-warning-continue');
-    const tokenWarningCancel = document.getElementById('token-warning-cancel');
-    
-    let processedText = '';
-    let processedFilesCount = 0;
-    let totalFilesToProcess = 0;
-    let isProcessingCancelled = false;
-    const CHARS_PER_TOKEN = 4;
-    
-    // Get token limit from model select
-    function getMaxTokens() {
-        const modelSelect = document.getElementById('model-select');
-        return parseInt(modelSelect.value, 10);
-    }
+    const modelSelect = document.getElementById('model-select');
+    const gitignoreCheckbox = document.getElementById('use-gitignore');
+    const gitignoreUpload = document.getElementById('gitignore-upload');
+    const gitignoreInput = document.getElementById('gitignore-input');
+    const gitignoreDropZone = document.querySelector('.gitignore-drop-zone');
+    const clearGitignoreBtn = document.getElementById('clear-gitignore');
+    const gitignoreStatus = document.getElementById('gitignore-status');
 
-    // Function to update progress UI
-    function updateProgress(processed, total, message) {
-        const percentage = Math.min(Math.round((processed / total) * 100), 100);
-        progressBar.style.width = `${percentage}%`;
-        progressText.textContent = `${processed} of ${total} files processed (${percentage}%)`;
-        if (message) {
-            statusMessage.textContent = message;
-        }
-    }
-
-    // Function to show/hide status container with animation
-    function toggleStatus(show, message = '') {
-        statusContainer.classList.toggle('hidden', !show);
-        if (show) {
-            statusMessage.textContent = message;
-            // Add fade-in effect
-            statusMessage.style.opacity = '0';
-            setTimeout(() => {
-                statusMessage.style.opacity = '1';
-            }, 10);
-        }
-    }
-
-    // Function to count total files in a directory entry
-    async function countFiles(entry, path = '') {
-        let count = 0;
-        if (entry.isDirectory) {
-            const reader = entry.createReader();
-            const entries = await new Promise((resolve, reject) => {
-                reader.readEntries(
-                    entries => resolve(entries),
-                    error => reject(error)
-                );
-            });
-            
-            for (const childEntry of entries) {
-                const fullPath = path ? `${path}/${childEntry.name}` : childEntry.name;
-                if (!shouldIgnoreFile(fullPath)) {
-                    count += await countFiles(childEntry, fullPath);
-                }
-            }
-        } else if (entry.isFile) {
-            const fullPath = path ? `${path}/${entry.name}` : entry.name;
-            if (!shouldIgnoreFile(fullPath)) {
-                count = 1;
-            }
-        }
-        return count;
-    }
-
-    // Function to parse .gitignore content
-    function parseGitignore(content) {
-        return content
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'))
-            .map(pattern => {
-                if (pattern.startsWith('/')) {
-                    pattern = pattern.slice(1);
-                }
-                if (pattern.endsWith('/')) {
-                    pattern = pattern.slice(0, -1);
-                }
-                return pattern;
-            });
-    }
-
-    // Function to clear gitignore
-    function clearGitignore() {
-        gitignorePatterns = [];
-        gitignoreStatus.textContent = '';
-        clearGitignoreBtn.classList.add('hidden');
-        gitignoreInput.value = '';
-    }
-
-    // Function to handle gitignore file
-    async function handleGitignoreFile(file) {
-        try {
-            const content = await file.text();
-            gitignorePatterns = parseGitignore(content);
-            gitignoreStatus.textContent = `Loaded ${gitignorePatterns.length} patterns from .gitignore`;
-            clearGitignoreBtn.classList.remove('hidden');
-            
-            // Update exclude patterns textarea
-            const currentPatterns = new Set(excludePatternsTextarea.value.split('\n').map(p => p.trim()).filter(p => p));
-            gitignorePatterns.forEach(pattern => currentPatterns.add(pattern));
-            excludePatternsTextarea.value = Array.from(currentPatterns).join('\n');
-        } catch (error) {
-            console.error('Error reading .gitignore file:', error);
-            gitignoreStatus.textContent = 'Error reading .gitignore file';
-        }
-    }
+    // Verify elements are found
+    console.log('File input found:', !!fileInput);
+    console.log('Dir input found:', !!dirInput);
+    console.log('Select files button found:', !!selectFilesBtn);
+    console.log('Select dir button found:', !!selectDirBtn);
+    console.log('Copy button found:', !!copyBtn);
 
     // File Selection Event Handlers
-    selectDirBtn.addEventListener('click', () => {
-        fallbackInput.click();
-    });
+    if (selectFilesBtn) {
+        selectFilesBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Clicking file input');
+            fileInput?.click();
+        };
+    }
 
-    // Main file drop zone event listeners
+    if (selectDirBtn) {
+        selectDirBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Clicking directory input');
+            dirInput?.click();
+        };
+    }
+
+    if (fileInput) {
+        fileInput.onchange = function(e) {
+            console.log('Files selected:', e.target.files.length);
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                processFiles(files);
+            }
+            this.value = '';
+        };
+    }
+
+    if (dirInput) {
+        dirInput.onchange = function(e) {
+            console.log('Directory selected:', e.target.files.length);
+            const files = Array.from(e.target.files);
+            if (files.length > 0) {
+                processFiles(files);
+            }
+            this.value = '';
+        };
+    }
+
+    // Drag and drop handling
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.add('border-blue-500', 'dark:border-blue-400');
+        dropZone.classList.add('dragover');
     });
 
-    dropZone.addEventListener('dragleave', (e) => {
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('border-blue-500', 'dark:border-blue-400');
+        dropZone.classList.remove('dragover');
+        const items = Array.from(e.dataTransfer.files);
+        processFiles(items);
     });
 
-    dropZone.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.classList.remove('border-blue-500', 'dark:border-blue-400');
-        
-        const items = Array.from(e.dataTransfer.items);
-        if (items.length === 0) {
-            dropStatus.textContent = 'No files dropped';
-            return;
-        }
-
-        // Reset status
-        processedText = '';
-        processedFilesCount = 0;
-        isProcessingCancelled = false;
-        totalFilesToProcess = 0;
-        
-        toggleStatus(true, 'Analyzing Files...');
-        loader.classList.remove('hidden');
-        resultContainer.classList.add('hidden');
-
-        try {
-            await processItems(items);
-            if (isProcessingCancelled) {
-                toggleStatus(true, 'Processing Cancelled');
-            } else {
-                toggleStatus(true, 'Processing Complete!');
+    // Copy button functionality
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const resultTextarea = document.getElementById('result');
+            if (resultTextarea) {
+                navigator.clipboard.writeText(resultTextarea.value);
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
             }
-            setTimeout(() => {
-                toggleStatus(false);
-            }, 2000);
-        } catch (error) {
-            console.error('Error processing dropped items:', error);
-            toggleStatus(true, 'Error Processing Files');
-            setTimeout(() => {
-                toggleStatus(false);
-            }, 2000);
-        } finally {
-            loader.classList.add('hidden');
-            resultContainer.classList.remove('hidden');
-            displayResult();
-            updateStats();
-        }
-    });
-
-    // Handle directory/file selection via button
-    fallbackInput.addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) {
-            dropStatus.textContent = 'No files selected';
-            return;
-        }
-
-        // Reset status
-        processedText = '';
-        processedFilesCount = 0;
-        isProcessingCancelled = false;
-        totalFilesToProcess = files.filter(file => !shouldIgnoreFile(file.webkitRelativePath || file.name)).length;
-        
-        toggleStatus(true, 'Beginning File Processing...');
-        loader.classList.remove('hidden');
-        resultContainer.classList.add('hidden');
-        
-        try {
-            await processFiles(files);
-            if (isProcessingCancelled) {
-                toggleStatus(true, 'Processing Cancelled');
-            } else {
-                toggleStatus(true, 'Processing Complete!');
-            }
-            setTimeout(() => {
-                toggleStatus(false);
-            }, 2000);
-        } catch (error) {
-            console.error('Error processing selected files:', error);
-            toggleStatus(true, 'Error Processing Files');
-            setTimeout(() => {
-                toggleStatus(false);
-            }, 2000);
-        } finally {
-            loader.classList.add('hidden');
-            resultContainer.classList.remove('hidden');
-            displayResult();
-            updateStats();
-        }
-    });
-
-    // Process dropped items (handles both files and directories)
-    async function processItems(items) {
-        isProcessingCancelled = false;
-        processedText = '';
-        processedFilesCount = 0;
-        
-        try {
-            // Count total files first
-            totalFilesToProcess = 0;
-            for (const item of items) {
-                const entry = item.webkitGetAsEntry();
-                if (entry) {
-                    totalFilesToProcess += await countFiles(entry);
-                }
-            }
-            
-            if (totalFilesToProcess === 0) {
-                dropStatus.textContent = 'No valid files to process';
-                return;
-            }
-
-            toggleStatus(true, 'Beginning File Processing...');
-            loader.classList.remove('hidden');
-            resultContainer.classList.add('hidden');
-            
-            // Process all items
-            for (const item of items) {
-                const entry = item.webkitGetAsEntry();
-                if (entry) {
-                    await processEntry(entry);
-                    if (isProcessingCancelled) {
-                        break;
-                    }
-                }
-            }
-
-            // Check token limit after processing all files
-            const currentTokens = Math.ceil(processedText.length / CHARS_PER_TOKEN);
-            if (currentTokens > getMaxTokens()) {
-                const shouldContinue = await showTokenWarning(currentTokens);
-                if (!shouldContinue) {
-                    isProcessingCancelled = true;
-                }
-            }
-
-            if (isProcessingCancelled) {
-                toggleStatus(true, 'Processing Cancelled');
-            } else {
-                toggleStatus(true, 'Processing Complete!');
-            }
-            
-            displayResult();
-            updateStats();
-            loader.classList.add('hidden');
-            resultContainer.classList.remove('hidden');
-            
-        } catch (error) {
-            console.error('Error processing items:', error);
-            dropStatus.textContent = 'Error processing files';
-            loader.classList.add('hidden');
-        }
-    }
-
-    // Process selected files
-    async function processFiles(files) {
-        isProcessingCancelled = false;
-        processedText = '';
-        processedFilesCount = 0;
-        totalFilesToProcess = files.length;
-        
-        try {
-            toggleStatus(true, 'Beginning File Processing...');
-            loader.classList.remove('hidden');
-            resultContainer.classList.add('hidden');
-            
-            for (const file of files) {
-                if (!shouldIgnoreFile(file.name)) {
-                    await processFile(file, file.name);
-                    if (isProcessingCancelled) {
-                        break;
-                    }
-                }
-            }
-
-            // Check token limit after processing all files
-            const currentTokens = Math.ceil(processedText.length / CHARS_PER_TOKEN);
-            if (currentTokens > getMaxTokens()) {
-                const shouldContinue = await showTokenWarning(currentTokens);
-                if (!shouldContinue) {
-                    isProcessingCancelled = true;
-                }
-            }
-
-            if (isProcessingCancelled) {
-                toggleStatus(true, 'Processing Cancelled');
-            } else {
-                toggleStatus(true, 'Processing Complete!');
-            }
-            
-            displayResult();
-            updateStats();
-            loader.classList.add('hidden');
-            resultContainer.classList.remove('hidden');
-            
-        } catch (error) {
-            console.error('Error processing files:', error);
-            dropStatus.textContent = 'Error processing files';
-            loader.classList.add('hidden');
-        }
-    }
-
-    // Process a single entry (file or directory)
-    async function processEntry(entry, path = '') {
-        if (isProcessingCancelled) {
-            return;
-        }
-
-        if (entry.isDirectory) {
-            const reader = entry.createReader();
-            const entries = await new Promise((resolve, reject) => {
-                reader.readEntries(
-                    entries => resolve(entries),
-                    error => reject(error)
-                );
-            });
-            
-            for (const childEntry of entries) {
-                const fullPath = path ? `${path}/${childEntry.name}` : childEntry.name;
-                if (!shouldIgnoreFile(fullPath)) {
-                    await processEntry(childEntry, fullPath);
-                }
-            }
-        } else if (entry.isFile) {
-            const fullPath = path ? `${path}/${entry.name}` : entry.name;
-            if (!shouldIgnoreFile(fullPath)) {
-                const file = await new Promise((resolve, reject) => {
-                    entry.file(
-                        file => resolve(file),
-                        error => reject(error)
-                    );
-                });
-                await processFile(file, fullPath);
-            }
-        }
-    }
-
-    // Process a single file
-    async function processFile(file, filePath) {
-        if (isProcessingCancelled) {
-            return;
-        }
-
-        try {
-            let content = await file.text();
-            if (stripCommentsCheckbox.checked) {
-                content = stripComments(content, file.name.split('.').pop());
-            }
-            
-            const pattern = formatPatternInput.value;
-            const formattedContent = pattern
-                .replace('{path}', filePath.substring(0, filePath.lastIndexOf('/') + 1))
-                .replace('{filename}', filePath.substring(filePath.lastIndexOf('/') + 1))
-                .replace('{content}', content)
-                .replace(/{newline}/g, '\n');
-            
-            processedText += formattedContent;
-            processedFilesCount++;
-            updateProgress(processedFilesCount, totalFilesToProcess);
-            
-        } catch (error) {
-            console.error(`Error processing file ${filePath}:`, error);
-            if (!includeBinaryCheckbox.checked) {
-                console.log('Skipping binary file:', filePath);
-            }
-        }
-    }
-
-    // Function to show token warning and get user decision
-    function formatTokenCount(count) {
-        if (count >= 1000000) {
-            return (count / 1000000).toFixed(1) + 'M';
-        } else if (count >= 1000) {
-            return (count / 1000).toFixed(1) + 'K';
-        }
-        return count.toLocaleString();
-    }
-
-    function showTokenWarning(currentTokens) {
-        return new Promise((resolve) => {
-            tokenWarningStats.textContent = `Current tokens: ${formatTokenCount(currentTokens)} / ${formatTokenCount(getMaxTokens())}`;
-            tokenWarning.classList.remove('hidden');
-            
-            const handleContinue = () => {
-                tokenWarning.classList.add('hidden');
-                cleanup();
-                resolve(true);
-            };
-            
-            const handleCancel = () => {
-                tokenWarning.classList.add('hidden');
-                cleanup();
-                resolve(false);
-            };
-            
-            const cleanup = () => {
-                tokenWarningContinue.removeEventListener('click', handleContinue);
-                tokenWarningCancel.removeEventListener('click', handleCancel);
-            };
-            
-            tokenWarningContinue.addEventListener('click', handleContinue);
-            tokenWarningCancel.addEventListener('click', handleCancel);
         });
     }
 
-    // Check if a file should be ignored based on patterns and gitignore
-    function shouldIgnoreFile(filePath) {
-        // Check exclude patterns
-        const excludePatterns = excludePatternsTextarea.value
-            .split('\n')
-            .filter(pattern => pattern.trim())
-            .map(pattern => new RegExp(pattern.trim()
-                .replace(/\./g, '\\.')
-                .replace(/\*/g, '.*')
-                .replace(/\?/g, '.')));
-
-        if (excludePatterns.some(pattern => pattern.test(filePath))) {
-            return true;
-        }
-
-        // Check gitignore patterns if enabled
-        if (useGitignoreCheckbox.checked && gitignorePatterns.length > 0) {
-            return gitignorePatterns.some(pattern => {
-                const regexPattern = pattern
-                    .replace(/\./g, '\\.')
-                    .replace(/\*/g, '.*')
-                    .replace(/\?/g, '.');
-                const regex = new RegExp(`^${regexPattern}$`);
-                return regex.test(filePath);
-            });
-        }
-
-        return false;
+    // Add model selection change handler
+    if (modelSelect) {
+        modelSelect.addEventListener('change', updateStats);
     }
 
-    // Gitignore event listeners
-    useGitignoreCheckbox.addEventListener('change', () => {
-        gitignoreUpload.classList.toggle('hidden', !useGitignoreCheckbox.checked);
-        if (!useGitignoreCheckbox.checked) {
-            clearGitignore();
-        }
-    });
-
-    gitignoreDropZone.addEventListener('click', () => gitignoreInput.click());
-    gitignoreDropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        gitignoreDropZone.classList.add('dragover');
-    });
-    gitignoreDropZone.addEventListener('dragleave', () => {
-        gitignoreDropZone.classList.remove('dragover');
-    });
-    gitignoreDropZone.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        gitignoreDropZone.classList.remove('dragover');
-        
-        const file = e.dataTransfer.files[0];
-        if (file && (file.name === '.gitignore' || file.name.endsWith('.gitignore'))) {
-            await handleGitignoreFile(file);
-        } else {
-            gitignoreStatus.textContent = 'Please upload a .gitignore file';
-        }
-    });
-
-    gitignoreInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            await handleGitignoreFile(file);
-        }
-    });
-
-    clearGitignoreBtn.addEventListener('click', clearGitignore);
-
-    const COMMENT_PATTERNS = {
-        '.js': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.jsx': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.ts': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.tsx': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.py': [/#.*$/gm, /'''[\s\S]*?'''/g, /"""[\s\S]*?"""/g],
-        '.php': [/\/\/.*$/gm, /#.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.java': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.c': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.cpp': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.h': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.hpp': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.cs': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.rb': [/#.*$/gm, /=begin[\s\S]*?=end/g],
-        '.sh': [/#.*$/gm],
-        '.bash': [/#.*$/gm],
-        '.go': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-        '.rs': [/\/\/.*$/gm, /\/\*[\s\S]*?\*\//g],
-    };
-
-    const TEXT_FILE_EXTENSIONS = new Set([
-        '.html', '.css', '.js', '.jsx', '.ts', '.tsx', '.json', '.xml', '.svg', '.md', '.mdx',
-        '.env', '.yml', '.yaml', '.toml', '.ini', '.conf', '.config',
-        '.py', '.java', '.cpp', '.c', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift',
-        '.kt', '.kts', '.scala', '.sh', '.bash', '.pl', '.pm', '.r', '.lua', '.sql',
-        '.txt', '.rtf', '.csv', '.log', '.readme',
-        '.gitignore', '.dockerignore', '.editorconfig'
-    ]);
-
-    function isTextFile(filename) {
-        const ext = '.' + filename.split('.').pop().toLowerCase();
-        return TEXT_FILE_EXTENSIONS.has(ext);
+    // Initialize gitignore functionality
+    if (gitignoreCheckbox && gitignoreUpload) {
+        gitignoreCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                gitignoreUpload.classList.remove('hidden');
+            } else {
+                gitignoreUpload.classList.add('hidden');
+                if (clearGitignoreBtn) {
+                    clearGitignoreBtn.click(); // Clear any existing gitignore
+                }
+            }
+        });
     }
 
-    function stripComments(content, extension) {
-        const patterns = COMMENT_PATTERNS[extension];
-        if (!patterns) return content;
+    // Gitignore file handling
+    if (gitignoreDropZone) {
+        gitignoreDropZone.addEventListener('click', () => {
+            gitignoreInput?.click();
+        });
 
-        let result = content;
-        for (const pattern of patterns) {
-            result = result.replace(pattern, '');
+        gitignoreDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            gitignoreDropZone.classList.add('border-gray-400', 'dark:border-gray-500');
+        });
+
+        gitignoreDropZone.addEventListener('dragleave', () => {
+            gitignoreDropZone.classList.remove('border-gray-400', 'dark:border-gray-500');
+        });
+
+        gitignoreDropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            gitignoreDropZone.classList.remove('border-gray-400', 'dark:border-gray-500');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                await handleGitignoreFile(file);
+            }
+        });
+    }
+
+    if (gitignoreInput) {
+        gitignoreInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                await handleGitignoreFile(file);
+            }
+            gitignoreInput.value = ''; // Reset input
+        });
+    }
+
+    if (clearGitignoreBtn) {
+        clearGitignoreBtn.addEventListener('click', () => {
+            window.gitignorePatterns = [];
+            clearGitignoreBtn.classList.add('hidden');
+            
+            // Reset exclude patterns textarea to default patterns
+            const excludePatternsTextarea = document.getElementById('exclude-patterns');
+            if (excludePatternsTextarea) {
+                excludePatternsTextarea.value = defaultExcludePatterns;
+            }
+            
+            if (gitignoreStatus) {
+                gitignoreStatus.textContent = '';
+            }
+        });
+    }
+
+    // Handle gitignore file upload
+    async function handleGitignoreFile(file) {
+        try {
+            const content = await file.text();
+            const patterns = content
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line && !line.startsWith('#'));
+            
+            window.gitignorePatterns = patterns;
+            
+            // Update exclude patterns textarea
+            const excludePatternsTextarea = document.getElementById('exclude-patterns');
+            if (excludePatternsTextarea) {
+                // Get existing patterns
+                const existingPatterns = excludePatternsTextarea.value
+                    .split('\n')
+                    .map(line => line.trim())
+                    .filter(Boolean);
+                
+                // Combine existing and new patterns, remove duplicates
+                const combinedPatterns = [...new Set([...existingPatterns, ...patterns])];
+                
+                // Update textarea
+                excludePatternsTextarea.value = combinedPatterns.join('\n');
+            }
+            
+            if (clearGitignoreBtn) {
+                clearGitignoreBtn.classList.remove('hidden');
+            }
+            if (gitignoreStatus) {
+                gitignoreStatus.textContent = `Loaded ${patterns.length} patterns from .gitignore`;
+            }
+        } catch (error) {
+            console.error('Error reading .gitignore file:', error);
+            if (gitignoreStatus) {
+                gitignoreStatus.textContent = 'Error reading .gitignore file';
+            }
         }
-        
-        return result
-            .split('\n')
-            .filter(line => line.trim())
-            .join('\n')
-            .replace(/\n{3,}/g, '\n\n');
     }
-
-    function updateStats() {
-        const text = processedText;
-        const chars = text.length;
-        const words = text.split(/\s+/).filter(Boolean).length;
-        const tokens = Math.ceil(chars / CHARS_PER_TOKEN);
-        
-        document.getElementById('char-count').textContent = `${chars.toLocaleString()} / ${(getMaxTokens() * CHARS_PER_TOKEN).toLocaleString()}`;
-        document.getElementById('word-count').textContent = words.toLocaleString();
-        document.getElementById('token-count').textContent = `${formatTokenCount(tokens)} / ${formatTokenCount(getMaxTokens())}`;
-        
-        const tokenCount = document.getElementById('token-count');
-        if (tokens > getMaxTokens() * 0.9) {
-            tokenCount.classList.add('text-red-500');
-        } else if (tokens > getMaxTokens() * 0.75) {
-            tokenCount.classList.add('text-yellow-500');
-        } else {
-            tokenCount.classList.remove('text-red-500', 'text-yellow-500');
-        }
-    }
-
-    // Function to display the result in the textarea
-    function displayResult() {
-        resultTextarea.value = processedText;
-    }
-
-    // Copy button functionality
-    copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(processedText);
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => {
-            copyBtn.textContent = originalText;
-        }, 2000);
-    });
 });
