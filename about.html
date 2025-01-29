@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="About nrepo - Learn how to use this source code preparation tool for LLMs">
+    <title>About nrepo - How to Use</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="js/theme.js"></script>
+    <script src="js/loader.js"></script>
+</head>
+<body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col">
+    <div id="header-container"></div>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-[#24292f] dark:text-[#c9d1d9] mb-8">How to Use nrepo</h1>
+            
+            <section class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm mb-8">
+                <h2 class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">What is nrepo?</h2>
+                <p class="text-[#24292f] dark:text-[#c9d1d9] mb-4">
+                    nrepo is a tool designed to prepare and combine source code files for use with Large Language Models (LLMs). It helps developers easily process multiple source files into an optimized text format that LLMs can better understand and work with.
+                </p>
+            </section>
+
+            <section class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm mb-8">
+                <h2 class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Ways to Use nrepo</h2>
+                <div class="space-y-6 text-[#24292f] dark:text-[#c9d1d9]">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">1. Local Files Upload</h3>
+                        <p class="mb-4">Process files from your local machine:</p>
+                        <ul class="list-disc list-inside space-y-2 ml-4">
+                            <li>Visit the <a href="index.html" target="_blank" class="text-[#2da44e] hover:underline">Upload Files</a> page</li>
+                            <li>Drag and drop files/folders or use the "Select Files" button / There is a "Select Directory" button to upload folders</li>
+                            <li>Choose your target LLM model and configure settings</li>
+                            <li>Process and download the formatted output</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">2. GitHub Repository Processing</h3>
+                        <p class="mb-4">Convert code directly from a GitHub repository:</p>
+                        <ul class="list-disc list-inside space-y-2 ml-4">
+                            <li>Go to the <a href="repo.html" target="_blank" class="text-[#2da44e] hover:underline">GitHub Repo</a> page</li>
+                            <li>Enter the repository URL (e.g., https://github.com/MohamedElashri/nrepo)</li>
+                            <li>Select specific branches or folders to process</li>
+                            <li>Get your code formatted for LLM use</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-[#f6f8fa] dark:bg-[#161b22] rounded-lg p-6 shadow-sm mb-8">
+                <h2 class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Use Cases</h2>
+                <ul class="list-disc list-inside space-y-4 text-[#24292f] dark:text-[#c9d1d9]">
+                    <li><strong>Code Analysis:</strong> Prepare your codebase for LLM-based code review and analysis</li>
+                    <li><strong>Documentation:</strong> Generate comprehensive documentation using LLMs with your processed code</li>
+                    <li><strong>Code Understanding:</strong> Help LLMs better understand your project structure and relationships</li>
+                </ul>
+            </section>
+
+        </div>
+    </main>
+
+    <div id="footer-container"></div>
+</body>
+</html>
