@@ -1,9 +1,12 @@
 document.addEventListener('DOMContentLoaded', async function() {
+    // Get base URL for the site
+    const baseUrl = window.location.pathname.includes('/nrepo/') ? '/nrepo' : '';
+
     // Load header
     const headerContainer = document.getElementById('header-container');
     if (headerContainer) {
         try {
-            const response = await fetch('../components/header.html');
+            const response = await fetch(`${baseUrl}/components/header.html`);
             if (!response.ok) throw new Error(`Failed to load header`);
             headerContainer.innerHTML = await response.text();
         } catch (error) {
@@ -13,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     <div class="container mx-auto px-4 py-4">
                         <div class="flex justify-between items-center">
                             <div class="flex items-baseline gap-3">
-                                <a href="index.html" class="text-2xl font-bold text-[#24292f] dark:text-[#c9d1d9] hover:underline">nrepo</a>
+                                <a href="${baseUrl}/index.html" class="text-2xl font-bold text-[#24292f] dark:text-[#c9d1d9] hover:underline">nrepo</a>
                             </div>
                         </div>
                     </div>
@@ -25,11 +28,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     const footerContainer = document.getElementById('footer-container');
     if (footerContainer) {
         try {
-            const response = await fetch('../components/footer.html');
+            const response = await fetch(`${baseUrl}/components/footer.html`);
             if (!response.ok) throw new Error(`Failed to load footer`);
             footerContainer.innerHTML = await response.text();
         } catch (error) {
             console.error('Error loading footer:', error);
+            footerContainer.innerHTML = `
+                <footer class="bg-[#f6f8fa] dark:bg-[#161b22] py-4">
+                    <div class="container mx-auto px-4 text-center text-[#24292f] dark:text-[#c9d1d9]">
+                        <p>&copy; ${new Date().getFullYear()} nrepo. All rights reserved.</p>
+                    </div>
+                </footer>`;
         }
     }
 });
