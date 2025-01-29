@@ -204,6 +204,43 @@ const shouldIgnoreFile = (filePath) => {
     
     if (!filePath) return false;
     
+    // Normalize path to use forward slashes
+    filePath = filePath.replace(/\\/g, '/');
+    // Remove leading slash if present
+    filePath = filePath.replace(/^\//, '');
+    
+    const matchPattern = (pattern, path) => {
+        // Normalize pattern
+        pattern = pattern.trim().replace(/\\/g, '/');
+        
+        // Handle negation
+        if (pattern.startsWith('!')) {
+            return !matchPattern(pattern.slice(1), path);
+        }
+        
+        // Remove leading slash
+        pattern = pattern.replace(/^\//, '');
+        
+        // Handle directory-specific patterns (ending with /)
+        if (pattern.endsWith('/')) {
+            pattern = pattern.slice(0, -1);
+            if (!path.includes('/')) return false;
+        }
+        
+        // Convert gitignore globs to RegExp
+        const regexPattern = pattern
+            // Escape special regex chars except * and ?
+            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+            // Convert gitignore globs to regex patterns
+            .replace(/\*/g, '.*')
+            .replace(/\?/g, '.')
+            // Handle double asterisk
+            .replace(/\.\*\.\*/g, '.*');
+        
+        const regex = new RegExp(`^${regexPattern}$|^${regexPattern}/|/${regexPattern}$|/${regexPattern}/`);
+        return regex.test(path);
+    };
+    
     // Check custom exclude patterns
     if (excludePatternsTextarea) {
         const patterns = excludePatternsTextarea.value
@@ -212,7 +249,7 @@ const shouldIgnoreFile = (filePath) => {
             .filter(p => p && !p.startsWith('#'));
             
         for (const pattern of patterns) {
-            if (filePath.includes(pattern)) {
+            if (matchPattern(pattern, filePath)) {
                 return true;
             }
         }
@@ -221,7 +258,7 @@ const shouldIgnoreFile = (filePath) => {
     // Check gitignore patterns
     if (useGitignore && window.gitignorePatterns) {
         for (const pattern of window.gitignorePatterns) {
-            if (filePath.includes(pattern)) {
+            if (matchPattern(pattern, filePath)) {
                 return true;
             }
         }
@@ -282,12 +319,29 @@ const createFileTree = (files) => {
     
     for (const file of files) {
         const path = file.webkitRelativePath || file.name;
+        
+        // Skip files that should be ignored
+        if (shouldIgnoreFile(path)) {
+            continue;
+        }
+        
         const parts = path.split('/');
         let currentNode = root;
+        
+        // Skip if the first part is ignored (e.g., .git directory)
+        if (shouldIgnoreFile(parts[0])) {
+            continue;
+        }
         
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
             const isLast = i === parts.length - 1;
+            const currentPath = parts.slice(0, i + 1).join('/');
+            
+            // Skip if any parent directory should be ignored
+            if (shouldIgnoreFile(currentPath)) {
+                break;
+            }
             
             if (!currentNode.children.has(part)) {
                 currentNode.children.set(part, new FileNode(part, !isLast));
@@ -299,26 +353,34 @@ const createFileTree = (files) => {
     return root;
 };
 
-const generateTreeHTML = (node, prefix = '', isLast = true, isRoot = true) => {
+// Sort function that puts directories first
+const sortNodes = (a, b) => {
+    if (a[1].isDirectory === b[1].isDirectory) {
+        return a[0].localeCompare(b[0]);
+    }
+    return a[1].isDirectory ? -1 : 1;
+};
+
+const generateHTML = (node, prefix = '', isLast = true, isRoot = true) => {
     if (isRoot) {
-        return Array.from(node.children.values())
-            .map((child, index, array) => 
-                generateTreeHTML(child, '', index === array.length - 1, false))
+        return Array.from(node.children.entries())
+            .sort(sortNodes)
+            .map(([name, childNode], index, array) => 
+                generateHTML(childNode, '', index === array.length - 1, false))
             .join('');
     }
-
-    const marker = isLast ? '└── ' : '├── ';
+    
+    const connector = isLast ? '└── ' : '├── ';
     const childPrefix = isLast ? '    ' : '│   ';
     
-    let html = `<div class="tree-line">${prefix}${marker}${node.name}</div>`;
+    let html = `${prefix}${connector}${node.name}\n`;
     
     if (node.isDirectory) {
-        const children = Array.from(node.children.values());
-        const childrenHTML = children
-            .map((child, index) => 
-                generateTreeHTML(child, prefix + childPrefix, index === children.length - 1, false))
+        const sortedChildren = Array.from(node.children.entries()).sort(sortNodes);
+        html += sortedChildren
+            .map(([name, childNode], index) => 
+                generateHTML(childNode, prefix + childPrefix, index === sortedChildren.length - 1, false))
             .join('');
-        html += childrenHTML;
     }
     
     return html;
@@ -326,36 +388,19 @@ const generateTreeHTML = (node, prefix = '', isLast = true, isRoot = true) => {
 
 const displayFileTree = (files) => {
     const treeContainer = document.getElementById('file-tree');
-    if (!treeContainer) {
-        const container = document.createElement('div');
-        container.id = 'file-tree';
-        container.className = 'mt-4 p-4 bg-gray-800 rounded-lg overflow-x-auto';
-        
-        const header = document.createElement('div');
-        header.className = 'text-white font-semibold mb-2';
-        header.textContent = 'This is the tree structure of the code:';
-        
-        const tree = document.createElement('pre');
-        tree.className = 'text-gray-300 font-mono text-sm';
-        
-        const root = createFileTree(files);
-        tree.innerHTML = generateTreeHTML(root);
-        
-        container.appendChild(header);
-        container.appendChild(tree);
-        
-        // Insert after the drop zone
-        const dropZone = document.querySelector('.drop-zone');
-        if (dropZone) {
-            dropZone.parentNode.insertBefore(container, dropZone.nextSibling);
-        }
-    } else {
-        const root = createFileTree(files);
-        const tree = treeContainer.querySelector('pre');
-        if (tree) {
-            tree.innerHTML = generateTreeHTML(root);
-        }
-    }
+    if (!treeContainer) return;
+    
+    const root = createFileTree(files);
+    
+    const treeHTML = generateHTML(root)
+        .split('\n')
+        .map(line => `<div class="tree-line">${line}</div>`)
+        .join('');
+    
+    treeContainer.innerHTML = `<pre class="file-tree-pre">${treeHTML}</pre>`;
+    
+    // Update stats after tree is displayed
+    updateStats();
 };
 
 const processFiles = async (files) => {
@@ -380,7 +425,7 @@ const processFiles = async (files) => {
         // Generate tree structure for the output
         const root = createFileTree(files);
         const treeStructure = '// This is the tree structure of the code:\n' + 
-                            generateTreeHTML(root)
+                            generateHTML(root)
                                 .replace(/<div class="tree-line">/g, '')
                                 .replace(/<\/div>/g, '\n') +
                             '\n// End of tree structure\n\n';
