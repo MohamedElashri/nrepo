@@ -281,7 +281,14 @@ const processFile = async (file, filePath) => {
             const content = await file.text();
             const shouldStripComments = document.getElementById('strip-comments')?.checked;
             const ext = '.' + file.name.split('.').pop().toLowerCase();
-            let processedContent = shouldStripComments ? stripComments(content, ext) : content;
+            
+            // Special handling for Jupyter notebooks
+            let processedContent;
+            if (ext === '.ipynb') {
+                processedContent = parseJupyterNotebook(content);
+            } else {
+                processedContent = shouldStripComments ? stripComments(content, ext) : content;
+            }
             
             if (processedContent.trim()) {
                 const formatPattern = document.getElementById('format-pattern')?.value || 
@@ -303,6 +310,36 @@ const processFile = async (file, filePath) => {
         }
     } catch (error) {
         console.error('Error processing file:', filePath, error);
+    }
+};
+
+const parseJupyterNotebook = (content) => {
+    try {
+        const notebook = JSON.parse(content);
+        if (!notebook.cells) {
+            return content; // Not a valid notebook format, return original content
+        }
+
+        let parsedContent = '';
+        notebook.cells.forEach((cell, index) => {
+            // Only process markdown and code cells
+            if (cell.cell_type === 'markdown' || cell.cell_type === 'code') {
+                parsedContent += `// Cell ${index + 1} (${cell.cell_type})\n`;
+                
+                // Join the source lines and add them to parsed content
+                if (Array.isArray(cell.source)) {
+                    parsedContent += cell.source.join('');
+                } else if (typeof cell.source === 'string') {
+                    parsedContent += cell.source;
+                }
+                parsedContent += '\n\n';
+            }
+        });
+
+        return parsedContent.trim();
+    } catch (error) {
+        console.error('Error parsing Jupyter notebook:', error);
+        return content; // Return original content if parsing fails
     }
 };
 
