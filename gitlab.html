@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="nrepo - GitLab Repository Integration for LLM Code Processing">
+    <meta name="keywords" content="gitlab, source code, LLM, code processing, development tools, machine learning">
+    <meta name="author" content="melashri.net">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph meta tags for social media -->
+    <meta property="og:title" content="nrepo - GitLab Repository Processing">
+    <meta property="og:description" content="Process GitLab repositories directly for Large Language Models. Enter a repository URL to begin processing.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://melashri.net/nrepo/gitlab">
+    <meta property="og:site_name" content="nrepo">
+    
+    <title>nrepo - GitLab Repository Processing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {"50":"#eff6ff","100":"#dbeafe","200":"#bfdbfe","300":"#93c5fd","400":"#60a5fa","500":"#3b82f6","600":"#2563eb","700":"#1d4ed8","800":"#1e40af","900":"#1e3a8a","950":"#172554"}
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="js/theme.js"></script>
+    <script src="js/loader.js"></script>
+    <script defer src="js/gitlab.js"></script>
+</head>
+
+<body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col">
+    <div id="header-container"></div>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
+                <h1 class="text-2xl font-bold mb-6 text-[#24292f] dark:text-[#c9d1d9]">Process GitLab Repository</h1>
+                
+                <!-- GitLab Repository Input -->
+                <div class="mb-8">
+                    <div class="flex gap-4">
+                        <input type="text" 
+                               id="gitlabRepoUrl" 
+                               placeholder="Enter GitLab repository URL (e.g., https://gitlab.com/username/repo)" 
+                               class="flex-grow p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
+                        <button id="processGitlabRepo" 
+                                class="px-6 py-3 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200">
+                            Process Repository
+                        </button>
+                    </div>
+                    
+                    <p class="mt-2 text-sm text-[#57606a] dark:text-[#8b949e]">
+                        Enter a GitLab repository URL to process its contents for LLM context
+                    </p>
+
+                    <!-- Self-hosted Instance Toggle -->
+                    <div class="mt-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" 
+                                   id="showInstanceUrl" 
+                                   class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">Using a self-hosted GitLab instance?</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Self-hosted Instance URL Input (hidden by default) -->
+                    <div id="instanceUrlContainer" class="hidden mt-4">
+                        <input type="text" 
+                               id="gitlabInstanceUrl" 
+                               placeholder="e.g., https://gitlab.cern.ch" 
+                               class="w-full p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Model Settings</h3>
+                        <div>
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">Select Model:</label>
+                            <select 
+                                id="gitlab-modelSelect" 
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="128000">GPT-4o (128K tokens)</option>
+                                <option value="150000">O1 (128K tokens)</option>
+                                <option value="200000">Claude 3 Opus (200K tokens)</option>
+                                <option value="100000">Claude 3.5 Sonnet (200K tokens)</option>
+                                <option value="2000000">Claude 3.5 Haiku (200k tokens)</option>
+                                <option value="2000000">Gemini Experimental 1206 (2M tokens)</option>
+                                <option value="2000000">Gemini 2.0 Flash (1M tokens)</option>
+                                <option value="1000000">Gemini 1.5 Pro (1M tokens)</option>
+                                <option value="128000">DeepSeek-R1 (131k tokens)</option>
+                                <option value="128000">DeepSeek-V3 (131k tokens)</option>
+                                <option value="32000">QwQ-32B-Preview (32K tokens)</option>
+                                <option value="32000">Qwen2.5 72B Instruct (131K tokens)</option>
+                            </select>
+                        </div>
+                        <div class="mt-4">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="gitlab-stripComments" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700" checked>
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Strip comments from code files</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Removes comments from common programming languages to reduce token count</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Section -->
+                <div id="gitlab-progress" class="mt-8 hidden">
+                    <div class="relative w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div id="gitlab-progressBar" class="absolute top-0 h-full bg-[#2da44e] transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p class="text-center mt-2 text-[#57606a] dark:text-[#8b949e]">
+                        Processing files... <span id="gitlab-current-file" class="italic"></span>
+                    </p>
+                </div>
+
+                <!-- Results Section -->
+                <div id="gitlab-results" class="hidden space-y-8">
+                    <!-- File Tree -->
+                    <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
+                        <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Repository Structure</h3>
+                        <div id="gitlab-file-tree" class="text-sm font-mono text-[#24292f] dark:text-[#c9d1d9] overflow-x-auto"></div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
+                        <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Statistics</h3>
+                        <div id="gitlab-resultStats" class="text-sm text-[#57606a] dark:text-[#8b949e]"></div>
+                    </div>
+
+                    <!-- Processed Text -->
+                    <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
+                        <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Processed Text</h3>
+                        <textarea id="gitlab-result" 
+                                  class="w-full h-64 p-4 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] font-mono text-sm" 
+                                  readonly></textarea>
+                    </div>
+                </div>
+
+                <!-- Warning Modals -->
+                <div id="gitlab-size-warning" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white dark:bg-[#161b22] p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <h3 class="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Size Warning</h3>
+                        <p class="text-[#24292f] dark:text-[#c9d1d9] mb-4">
+                            The repository size exceeds recommended limits. Processing may take longer than usual.
+                        </p>
+                        <div class="flex justify-end gap-4">
+                            <button class="px-4 py-2 text-[#24292f] dark:text-[#c9d1d9] hover:bg-gray-100 dark:hover:bg-[#21262d] rounded-md transition duration-200">Cancel</button>
+                            <button class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white rounded-md transition duration-200">Continue</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="gitlab-token-warning" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div class="bg-white dark:bg-[#161b22] p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <h3 class="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Token Limit Warning</h3>
+                        <p class="text-[#24292f] dark:text-[#c9d1d9] mb-4">
+                            The processed content exceeds the model's token limit. Continuing may result in truncated or incomplete output.
+                        </p>
+                        <div id="gitlab-token-warning-stats" class="text-sm text-[#57606a] dark:text-[#8b949e] mb-4"></div>
+                        <div class="flex justify-end gap-4">
+                            <button id="gitlab-token-warning-cancel" class="px-4 py-2 text-[#24292f] dark:text-[#c9d1d9] hover:bg-gray-100 dark:hover:bg-[#21262d] rounded-md transition duration-200">Cancel</button>
+                            <button id="gitlab-token-warning-continue" class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white rounded-md transition duration-200">Continue</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="footer-container"></div>
+</body>
+</html>
