@@ -109,6 +109,23 @@
                             ></textarea>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add custom patterns to ignore (e.g., *.log, test/*, etc.)</p>
                         </div>
+                        <div class="mt-4">
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">Output Format Pattern:</label>
+                            <textarea
+                                id="outputPattern"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                rows="2"
+                            >// File: {path}{filename}{newline}{content}{newline}{newline}</textarea>
+                            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                <p class="font-semibold mb-1">Available variables:</p>
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li>{path} - File path</li>
+                                    <li>{filename} - File name</li>
+                                    <li>{content} - File content</li>
+                                    <li>{newline} - New line character</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

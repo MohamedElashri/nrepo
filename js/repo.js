@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const content = await fetchFileContent(`https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`);
                         const processedContent = processFileContent(content, file.path);
                         if (processedContent) {
-                            window.processedText += `\nFile: ${file.path}\n${'='.repeat(file.path.length + 6)}\n${processedContent}\n`;
+                            window.processedText += processedContent;
                         }
                     } catch (error) {
                         console.error(`Error processing file ${file.path}:`, error);
@@ -216,7 +216,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (stripCommentsCheckbox.checked) {
             content = stripComments(content, '.' + filepath.split('.').pop());
         }
-        return content;
+        
+        // Get the output pattern and replace variables
+        const outputPattern = document.getElementById('outputPattern').value;
+        const filename = filepath.split('/').pop();
+        const path = filepath.substring(0, filepath.length - filename.length);
+        
+        return outputPattern
+            .replace(/{path}/g, path)
+            .replace(/{filename}/g, filename)
+            .replace(/{content}/g, content)
+            .replace(/{newline}/g, '\n');
     }
 
     function isTextFile(filename) {
