@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.processedFilesCount = 0;
     window.totalFilesToProcess = 0;
     window.isProcessingCancelled = false;
+    window.gitignorePatterns = [];
 
     class FileNode {
         constructor(name, isDirectory = false) {
@@ -29,6 +30,35 @@ document.addEventListener('DOMContentLoaded', function() {
             this.isDirectory = isDirectory;
             this.children = new Map();
         }
+    }
+
+    async function fetchGitignore(owner, repo) {
+        try {
+            const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/.gitignore`);
+            if (response.ok) {
+                const data = await response.json();
+                const content = atob(data.content);
+                return content.split('\n')
+                    .filter(line => line.trim() && !line.startsWith('#'))
+                    .map(line => line.trim());
+            }
+            return [];
+        } catch {
+            return [];
+        }
+    }
+
+    function shouldIgnoreFile(filePath, gitignorePatterns, customPatterns) {
+        const patterns = [...gitignorePatterns, ...customPatterns];
+        for (const pattern of patterns) {
+            if (!pattern) continue;
+            const regex = new RegExp(pattern
+                .replace(/\./g, '\\.')
+                .replace(/\*/g, '.*')
+                .replace(/\?/g, '.'));
+            if (regex.test(filePath)) return true;
+        }
+        return false;
     }
 
     processRepoButton.addEventListener('click', async () => {
@@ -43,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.processedFilesCount = 0;
         window.totalFilesToProcess = 0;
         window.isProcessingCancelled = false;
+        window.gitignorePatterns = [];
 
         // Show progress
         progressSection.classList.remove('hidden');
@@ -81,13 +112,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`;
         
         try {
+            // Get gitignore patterns if enabled
+            const respectGitignore = document.getElementById('respectGitignore').checked;
+            const gitignorePatterns = respectGitignore ? await fetchGitignore(owner, repo) : [];
+            
+            // Get custom ignore patterns
+            const customPatterns = document.getElementById('ignorePatterns').value
+                .split('\n')
+                .map(p => p.trim())
+                .filter(p => p);
+
             const response = await fetch(apiUrl);
             if (!response.ok) {
                 throw new Error(`GitHub API error: ${response.statusText}`);
             }
 
             const data = await response.json();
-            const files = data.tree.filter(item => item.type === 'blob');
+            const files = data.tree
+                .filter(item => item.type === 'blob')
+                .filter(item => !shouldIgnoreFile(item.path, gitignorePatterns, customPatterns));
+
             window.totalFilesToProcess = files.length;
 
             // Generate tree structure

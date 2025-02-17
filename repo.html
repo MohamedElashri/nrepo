@@ -92,6 +92,23 @@
                             </label>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Removes comments from common programming languages to reduce token count</p>
                         </div>
+                        <div class="mt-4">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="respectGitignore" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Respect .gitignore rules</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Skip files that match patterns in the repository's .gitignore file</p>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">Additional ignore patterns:</label>
+                            <textarea
+                                id="ignorePatterns"
+                                placeholder="Enter additional patterns to ignore (one per line)"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                rows="3"
+                            ></textarea>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add custom patterns to ignore (e.g., *.log, test/*, etc.)</p>
+                        </div>
                     </div>
                 </div>
 
