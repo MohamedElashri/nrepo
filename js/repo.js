@@ -1,21 +1,31 @@
 document.addEventListener('DOMContentLoaded', function() {
     const repoUrlInput = document.getElementById('repoUrl');
     const processRepoButton = document.getElementById('processRepo');
+    const branchNameInput = document.getElementById('branchName');
+    const privateRepoCheckbox = document.getElementById('privateRepo');
+    const tokenInput = document.getElementById('tokenInput');
+    const githubTokenInput = document.getElementById('githubToken');
     const progressSection = document.getElementById('progress');
     const progressBar = document.getElementById('progressBar');
+    const currentFile = document.getElementById('current-file');
     const resultsSection = document.getElementById('results');
     const resultStats = document.getElementById('resultStats');
     const resultTextarea = document.getElementById('result');
+    const outputPatternInput = document.getElementById('outputPattern');
     const stripCommentsCheckbox = document.getElementById('stripComments');
+    const respectGitignoreCheckbox = document.getElementById('respectGitignore');
+    const ignorePatternInput = document.getElementById('ignorePatterns');
     const modelSelect = document.getElementById('modelSelect');
-    const currentFile = document.getElementById('current-file');
     const sizeWarning = document.getElementById('size-warning');
     const tokenWarning = document.getElementById('token-warning');
-    const warningTitle = document.getElementById('warning-title');
-    const warningMessage = document.getElementById('warning-message');
     const tokenWarningStats = document.getElementById('token-warning-stats');
     const tokenWarningContinue = document.getElementById('token-warning-continue');
     const tokenWarningCancel = document.getElementById('token-warning-cancel');
+
+    // Toggle token input visibility based on private repo checkbox
+    privateRepoCheckbox.addEventListener('change', function() {
+        tokenInput.style.display = this.checked ? 'block' : 'none';
+    });
 
     // Global state
     window.processedText = '';
@@ -110,12 +120,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function processGithubRepo(owner, repo) {
         const branchName = document.getElementById('branchName').value.trim() || 'main';
-        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branchName}?recursive=1`;
+        const isPrivate = document.getElementById('privateRepo').checked;
+        const token = isPrivate ? document.getElementById('githubToken').value.trim() : '';
+        
+        // Prepare headers for GitHub API requests
+        const headers = new Headers({
+            'Accept': 'application/vnd.github.v3+json'
+        });
+        if (token) {
+            headers.set('Authorization', `token ${token}`);
+        }
         
         try {
+            // First, try to verify repository access
+            const repoCheckUrl = `https://api.github.com/repos/${owner}/${repo}`;
+            const repoCheckResponse = await fetch(repoCheckUrl, { headers });
+            
+            if (!repoCheckResponse.ok) {
+                const errorData = await repoCheckResponse.json();
+                if (repoCheckResponse.status === 404) {
+                    throw new Error(`Repository not found. Please check if the repository exists and you have access to it. Details: ${errorData.message}`);
+                } else if (repoCheckResponse.status === 401 || repoCheckResponse.status === 403) {
+                    if (isPrivate) {
+                        throw new Error(`Authentication failed. Please check if your GitHub token has the correct permissions. Details: ${errorData.message}`);
+                    } else {
+                        throw new Error(`This might be a private repository. Please check the 'Process Private Repository' option and provide a valid GitHub token. Details: ${errorData.message}`);
+                    }
+                } else {
+                    throw new Error(`GitHub API error: ${repoCheckResponse.status} - ${errorData.message || repoCheckResponse.statusText}`);
+                }
+            }
+
             // Get gitignore patterns if enabled
             const respectGitignore = document.getElementById('respectGitignore').checked;
-            const gitignorePatterns = respectGitignore ? await fetchGitignore(owner, repo) : [];
+            const gitignorePatterns = respectGitignore ? await fetchGitignore(owner, repo, headers) : [];
             
             // Get custom ignore patterns
             const customPatterns = document.getElementById('ignorePatterns').value
@@ -123,12 +161,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 .map(p => p.trim())
                 .filter(p => p);
 
-            const response = await fetch(apiUrl);
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branchName}?recursive=1`;
+            const response = await fetch(apiUrl, { 
+                headers,
+                method: 'GET'
+            });
+            
             if (!response.ok) {
-                throw new Error(`GitHub API error: ${response.statusText}`);
+                const errorData = await response.json();
+                throw new Error(`GitHub API error: ${response.status} - ${errorData.message || response.statusText}`);
             }
 
             const data = await response.json();
+            if (!data.tree) {
+                throw new Error('Invalid repository data received');
+            }
             const files = data.tree
                 .filter(item => item.type === 'blob')
                 .filter(item => !shouldIgnoreFile(item.path, gitignorePatterns, customPatterns));
@@ -205,9 +252,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchFileContent(url) {
-        const response = await fetch(url);
+        const isPrivate = document.getElementById('privateRepo').checked;
+        const token = isPrivate ? document.getElementById('githubToken').value.trim() : '';
+        const headers = new Headers({
+            'Accept': 'application/vnd.github.v3+json'
+        });
+        if (token) {
+            headers.set('Authorization', `token ${token}`);
+        }
+        const response = await fetch(url, { 
+            headers,
+            method: 'GET'
+        });
         if (!response.ok) {
-            throw new Error(`Failed to fetch file content: ${response.statusText}`);
+            const errorData = await response.json();
+            throw new Error(`Failed to fetch file content: ${response.status} - ${errorData.message || response.statusText}`);
         }
         const data = await response.json();
         return atob(data.content);
