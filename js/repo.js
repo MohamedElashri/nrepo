@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // First, try to verify repository access
+            // First, try to verify repository access and get default branch
             const repoCheckUrl = `https://api.github.com/repos/${owner}/${repo}`;
             const repoCheckResponse = await fetch(repoCheckUrl, { headers });
             
@@ -151,6 +151,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            const repoData = await repoCheckResponse.json();
+            // Always use repository's default branch
+            const targetBranch = repoData.default_branch;
+            
+            // Update the branch input placeholder and value to show the actual default branch
+            branchNameInput.placeholder = repoData.default_branch;
+            branchNameInput.value = repoData.default_branch;
+
             // Get gitignore patterns if enabled
             const respectGitignore = document.getElementById('respectGitignore').checked;
             const gitignorePatterns = respectGitignore ? await fetchGitignore(owner, repo, headers) : [];
@@ -161,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .map(p => p.trim())
                 .filter(p => p);
 
-            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branchName}?recursive=1`;
+            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${targetBranch}?recursive=1`;
             const response = await fetch(apiUrl, { 
                 headers,
                 method: 'GET'
@@ -169,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`GitHub API error: ${response.status} - ${errorData.message || response.statusText}`);
+                throw new Error(`Failed to fetch repository contents: GitHub API error: ${response.status} - ${errorData.message || response.statusText}`);
             }
 
             const data = await response.json();
