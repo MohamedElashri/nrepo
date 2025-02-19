@@ -302,7 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
             '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.cpp', '.cs',
             '.html', '.css', '.php', '.rb', '.go', '.rs', '.swift', '.kt',
             '.scala', '.sh', '.bash', '.sql', '.r', '.m', '.h', '.hpp',
-            '.vue', '.xml', '.yaml', '.yml', '.json', '.md', '.txt', '.svg'
+            '.vue', '.xml', '.yaml', '.yml', '.json', '.md', '.txt', '.svg',
+            '.Dockerfile', '.less', '.sass', '.scss', '.txt', '.log', '.conf',
+            '.cu', '.cuh'
         ];
         const ext = '.' + filename.split('.').pop().toLowerCase();
         return textExtensions.includes(ext);
