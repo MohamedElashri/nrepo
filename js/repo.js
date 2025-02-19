@@ -109,7 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function processGithubRepo(owner, repo) {
-        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`;
+        const branchName = document.getElementById('branchName').value.trim() || 'main';
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${branchName}?recursive=1`;
         
         try {
             // Get gitignore patterns if enabled
