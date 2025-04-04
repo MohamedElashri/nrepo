@@ -1,10 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Common elements
     const repoUrlInput = document.getElementById('repoUrl');
+    const instanceUrlInput = document.getElementById('instanceUrl');
+    const showInstanceUrlCheckbox = document.getElementById('showInstanceUrl');
+    const instanceUrlContainer = document.getElementById('instanceUrlContainer');
     const processRepoButton = document.getElementById('processRepo');
     const branchNameInput = document.getElementById('branchName');
     const privateRepoCheckbox = document.getElementById('privateRepo');
     const tokenInput = document.getElementById('tokenInput');
-    const githubTokenInput = document.getElementById('githubToken');
     const progressSection = document.getElementById('progress');
     const progressBar = document.getElementById('progressBar');
     const currentFile = document.getElementById('current-file');
@@ -23,10 +26,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const tokenWarningContinue = document.getElementById('token-warning-continue');
     const tokenWarningCancel = document.getElementById('token-warning-cancel');
 
+    // Determine if we're on GitHub or GitLab page
+    const isGitLabPage = document.title.includes('GitLab');
+
+    // Handle instance URL toggle for GitLab
+    if (showInstanceUrlCheckbox) {
+        showInstanceUrlCheckbox.addEventListener('change', function() {
+            instanceUrlContainer.classList.toggle('hidden', !this.checked);
+            if (!this.checked) {
+                instanceUrlInput.value = '';
+            }
+        });
+    }
+
     // Toggle token input visibility based on private repo checkbox
-    privateRepoCheckbox.addEventListener('change', function() {
-        tokenInput.style.display = this.checked ? 'block' : 'none';
-    });
+    if (privateRepoCheckbox) {
+        privateRepoCheckbox.addEventListener('change', function() {
+            tokenInput.style.display = this.checked ? 'block' : 'none';
+        });
+    }
 
     // Global state
     window.processedText = '';
@@ -43,12 +61,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function fetchGitignore(owner, repo) {
+    // URL validation functions
+    function isValidUrl(url, type = 'github', instanceUrl = '') {
         try {
-            const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/.gitignore`);
+            const urlObj = new URL(url);
+            if (type === 'gitlab') {
+                if (instanceUrl) {
+                    return url.startsWith(instanceUrl);
+                }
+                return urlObj.hostname === 'gitlab.com';
+            } else {
+                return urlObj.hostname === 'github.com' && urlObj.pathname.split('/').length >= 3;
+            }
+        } catch {
+            return false;
+        }
+    }
+
+    function parseRepoUrl(url, type = 'github', instanceUrl = '') {
+        if (type === 'gitlab') {
+            const baseUrl = instanceUrl || 'https://gitlab.com';
+            const urlWithoutBase = url.replace(baseUrl, '').replace(/^\//, '');
+            const [owner, repo] = urlWithoutBase.split('/');
+            return { owner, repo: repo.replace('.git', '') };
+        } else {
+            const parts = new URL(url).pathname.split('/').filter(Boolean);
+            return {
+                owner: parts[0],
+                repo: parts[1]
+            };
+        }
+    }
+
+    async function fetchGitignore(owner, repo, headers, type = 'github', instanceUrl = '') {
+        try {
+            let response;
+            if (type === 'github') {
+                response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/.gitignore`, { headers });
+            } else {
+                const baseUrl = instanceUrl || 'https://gitlab.com';
+                const projectId = encodeURIComponent(`${owner}/${repo}`);
+                response = await fetch(`${baseUrl}/api/v4/projects/${projectId}/repository/files/.gitignore/raw`, { headers });
+            }
+
             if (response.ok) {
-                const data = await response.json();
-                const content = atob(data.content);
+                const content = type === 'github' ? 
+                    atob((await response.json()).content) : 
+                    await response.text();
+                
                 return content.split('\n')
                     .filter(line => line.trim() && !line.startsWith('#'))
                     .map(line => line.trim());
@@ -74,8 +134,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     processRepoButton.addEventListener('click', async () => {
         const repoUrl = repoUrlInput.value.trim();
-        if (!isValidGithubUrl(repoUrl)) {
-            alert('Please enter a valid GitHub repository URL');
+        const instanceUrl = instanceUrlInput ? instanceUrlInput.value.trim() : '';
+        const repoType = (isGitLabPage || repoUrl.includes('gitlab')) ? 'gitlab' : 'github';
+
+        if (!isValidUrl(repoUrl, repoType, instanceUrl)) {
+            alert(`Please enter a valid ${repoType === 'gitlab' ? 'GitLab' : 'GitHub'} repository URL`);
             return;
         }
 
@@ -93,8 +156,12 @@ document.addEventListener('DOMContentLoaded', function() {
         progressBar.style.width = '0%';
 
         try {
-            const { owner, repo } = parseGithubUrl(repoUrl);
-            await processGithubRepo(owner, repo);
+            const { owner, repo } = parseRepoUrl(repoUrl, repoType, instanceUrl);
+            await processRepository(repoType, {
+                owner, 
+                repo,
+                instanceUrl
+            });
         } catch (error) {
             console.error('Error processing repository:', error);
             alert('Error processing repository. Please check the URL and try again.');
@@ -102,131 +169,204 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    function isValidGithubUrl(url) {
-        try {
-            const parsedUrl = new URL(url);
-            return parsedUrl.hostname === 'github.com' && parsedUrl.pathname.split('/').length >= 3;
-        } catch {
-            return false;
-        }
-    }
-
-    function parseGithubUrl(url) {
-        const parts = new URL(url).pathname.split('/').filter(Boolean);
-        return {
-            owner: parts[0],
-            repo: parts[1]
-        };
-    }
-
-    async function processGithubRepo(owner, repo) {
-        const branchName = document.getElementById('branchName').value.trim() || 'main';
-        const isPrivate = document.getElementById('privateRepo').checked;
-        const token = isPrivate ? document.getElementById('githubToken').value.trim() : '';
+    async function processRepository(type, config) {
+        const { owner, repo, instanceUrl } = config;
+        const branchName = branchNameInput ? branchNameInput.value.trim() : 'main';
+        const isPrivate = privateRepoCheckbox ? privateRepoCheckbox.checked : false;
         
-        // Prepare headers for GitHub API requests
-        const headers = new Headers({
-            'Accept': 'application/vnd.github.v3+json'
-        });
-        if (token) {
-            headers.set('Authorization', `token ${token}`);
+        // Get token based on type
+        let token = '';
+        if (isPrivate) {
+            token = document.getElementById(type === 'github' ? 'githubToken' : 'gitlabToken')?.value.trim() || '';
         }
         
+        // Prepare headers
+        const headers = new Headers();
+        if (type === 'github') {
+            headers.set('Accept', 'application/vnd.github.v3+json');
+            if (token) {
+                headers.set('Authorization', `token ${token}`);
+            }
+        } else {
+            // GitLab API
+            if (token) {
+                headers.set('Authorization', `Bearer ${token}`);
+            }
+        }
+
         try {
-            // First, try to verify repository access and get default branch
-            const repoCheckUrl = `https://api.github.com/repos/${owner}/${repo}`;
-            const repoCheckResponse = await fetch(repoCheckUrl, { headers });
-            
-            if (!repoCheckResponse.ok) {
-                const errorData = await repoCheckResponse.json();
-                if (repoCheckResponse.status === 404) {
-                    throw new Error(`Repository not found. Please check if the repository exists and you have access to it. Details: ${errorData.message}`);
-                } else if (repoCheckResponse.status === 401 || repoCheckResponse.status === 403) {
-                    if (isPrivate) {
-                        throw new Error(`Authentication failed. Please check if your GitHub token has the correct permissions. Details: ${errorData.message}`);
-                    } else {
-                        throw new Error(`This might be a private repository. Please check the 'Process Private Repository' option and provide a valid GitHub token. Details: ${errorData.message}`);
-                    }
-                } else {
-                    throw new Error(`GitHub API error: ${repoCheckResponse.status} - ${errorData.message || repoCheckResponse.statusText}`);
+            let targetBranch = branchName || 'main';
+            let files = [];
+
+            // First check if the repository exists
+            if (type === 'github') {
+                const repoCheckUrl = `https://api.github.com/repos/${owner}/${repo}`;
+                const repoCheckResponse = await fetch(repoCheckUrl, { headers });
+                
+                if (!repoCheckResponse.ok) {
+                    handleApiError(repoCheckResponse, type);
+                    return;
                 }
+
+                const repoData = await repoCheckResponse.json();
+                targetBranch = branchName || repoData.default_branch;
+                
+                if (branchNameInput) {
+                    branchNameInput.placeholder = repoData.default_branch;
+                    if (!branchName) {
+                        branchNameInput.value = repoData.default_branch;
+                    }
+                }
+
+                // Get the files recursively
+                const treeUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${targetBranch}?recursive=1`;
+                const treeResponse = await fetch(treeUrl, { headers });
+                
+                if (!treeResponse.ok) {
+                    handleApiError(treeResponse, type);
+                    return;
+                }
+                
+                const treeData = await treeResponse.json();
+                files = treeData.tree.filter(item => item.type === 'blob');
+            } else {
+                // GitLab API
+                const baseUrl = instanceUrl || 'https://gitlab.com';
+                const projectId = encodeURIComponent(`${owner}/${repo}`);
+                const projectUrl = `${baseUrl}/api/v4/projects/${projectId}`;
+                
+                const projectResponse = await fetch(projectUrl, { headers });
+                
+                if (!projectResponse.ok) {
+                    handleApiError(projectResponse, type);
+                    return;
+                }
+                
+                const projectData = await projectResponse.json();
+                targetBranch = branchName || projectData.default_branch;
+                
+                if (branchNameInput) {
+                    branchNameInput.placeholder = projectData.default_branch;
+                    if (!branchName) {
+                        branchNameInput.value = projectData.default_branch;
+                    }
+                }
+                
+                // Get the files recursively
+                const treeUrl = `${baseUrl}/api/v4/projects/${projectId}/repository/tree?recursive=true&ref=${targetBranch}&per_page=100`;
+                const treeResponse = await fetch(treeUrl, { headers });
+                
+                if (!treeResponse.ok) {
+                    handleApiError(treeResponse, type);
+                    return;
+                }
+                
+                const treeData = await treeResponse.json();
+                files = treeData.filter(item => item.type === 'blob').map(item => ({
+                    path: item.path,
+                    type: 'blob',
+                    url: `${baseUrl}/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw?ref=${targetBranch}`
+                }));
             }
 
-            const repoData = await repoCheckResponse.json();
-            // Always use repository's default branch
-            const targetBranch = repoData.default_branch;
-            
-            // Update the branch input placeholder and value to show the actual default branch
-            branchNameInput.placeholder = repoData.default_branch;
-            branchNameInput.value = repoData.default_branch;
-
-            // Get gitignore patterns if enabled
-            const respectGitignore = document.getElementById('respectGitignore').checked;
-            const gitignorePatterns = respectGitignore ? await fetchGitignore(owner, repo, headers) : [];
-            
-            // Get custom ignore patterns
-            const customPatterns = document.getElementById('ignorePatterns').value
-                .split('\n')
-                .map(p => p.trim())
-                .filter(p => p);
-
-            const apiUrl = `https://api.github.com/repos/${owner}/${repo}/git/trees/${targetBranch}?recursive=1`;
-            const response = await fetch(apiUrl, { 
-                headers,
-                method: 'GET'
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed to fetch repository contents: GitHub API error: ${response.status} - ${errorData.message || response.statusText}`);
+            if (files.length === 0) {
+                alert('No files found in the repository');
+                progressSection.classList.add('hidden');
+                return;
             }
-
-            const data = await response.json();
-            if (!data.tree) {
-                throw new Error('Invalid repository data received');
-            }
-            const files = data.tree
-                .filter(item => item.type === 'blob')
-                .filter(item => !shouldIgnoreFile(item.path, gitignorePatterns, customPatterns));
 
             window.totalFilesToProcess = files.length;
-
-            // Generate tree structure
-            const root = createFileTree(files);
-            const treeStructure = '// This is the tree structure of the code:\n' + 
-                                generateTreeHTML(root)
-                                    .replace(/<div class="tree-line">/g, '')
-                                    .replace(/<\/div>/g, '\n') +
-                                '\n// End of tree structure\n\n';
             
-            // Store the tree structure
-            window.processedText = treeStructure;
-
-            for (const file of files) {
-                if (window.isProcessingCancelled) break;
-
-                if (isTextFile(file.path)) {
-                    try {
-                        const content = await fetchFileContent(`https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`);
-                        const processedContent = processFileContent(content, file.path);
-                        if (processedContent) {
-                            window.processedText += processedContent;
-                        }
-                    } catch (error) {
-                        console.error(`Error processing file ${file.path}:`, error);
-                    }
-                }
-                window.processedFilesCount++;
-                updateProgress(window.processedFilesCount, window.totalFilesToProcess);
+            // Fetch .gitignore if option is enabled
+            if (respectGitignoreCheckbox && respectGitignoreCheckbox.checked) {
+                window.gitignorePatterns = await fetchGitignore(owner, repo, headers, type, instanceUrl);
             }
-
+            
+            // Parse custom ignore patterns
+            const customIgnorePatterns = ignorePatternInput && ignorePatternInput.value ? 
+                ignorePatternInput.value.split('\n').filter(pattern => pattern.trim()) : [];
+            
+            // Create a tree for visualization
+            const root = createFileTree(files);
+            const treeHTML = generateTreeHTML(root);
+            
+            // Process each file
+            const outputPattern = outputPatternInput ? 
+                outputPatternInput.value : 
+                "// File: {path}{filename}{newline}{content}{newline}{newline}";
+            
+            for (let i = 0; i < files.length; i++) {
+                if (window.isProcessingCancelled) break;
+                
+                const file = files[i];
+                const filePath = file.path;
+                
+                // Update progress UI
+                if (currentFile) currentFile.textContent = filePath;
+                updateProgress(i + 1, files.length);
+                
+                // Skip non-text files or files matching ignore patterns
+                if (!isTextFile(filePath) || shouldIgnoreFile(filePath, window.gitignorePatterns, customIgnorePatterns)) {
+                    continue;
+                }
+                
+                try {
+                    let contentUrl;
+                    if (type === 'github') {
+                        contentUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${targetBranch}/${filePath}`;
+                    } else {
+                        contentUrl = file.url;
+                    }
+                    
+                    const content = await fetchFileContent(contentUrl, headers);
+                    if (content) {
+                        const processedContent = processFileContent(content, filePath);
+                        const path = filePath.split('/').slice(0, -1).join('/');
+                        const filename = filePath.split('/').pop();
+                        
+                        const formattedOutput = outputPattern
+                            .replace('{path}', path ? path + '/' : '')
+                            .replace('{filename}', filename)
+                            .replace('{content}', processedContent)
+                            .replace(/\{newline\}/g, '\n');
+                        
+                        window.processedText += formattedOutput;
+                        window.processedFilesCount++;
+                        
+                        // Check if we're approaching token limits
+                        updateStats();
+                    }
+                } catch (error) {
+                    console.error(`Error processing file ${filePath}:`, error);
+                }
+            }
+            
+            // Show results
             displayResult();
-            updateStats();
+            
+            // Update file tree if element exists
+            const fileTreeElement = document.getElementById('file-tree');
+            if (fileTreeElement) {
+                fileTreeElement.innerHTML = `<pre>${treeHTML}</pre>`;
+            }
+            
             progressSection.classList.add('hidden');
             resultsSection.classList.remove('hidden');
-
+            
         } catch (error) {
-            throw new Error('Failed to fetch repository contents: ' + error.message);
+            console.error('Error processing repository:', error);
+            alert('Error processing repository. Please check the URL and try again.');
+            progressSection.classList.add('hidden');
+        }
+    }
+
+    function handleApiError(response, type) {
+        if (response.status === 404) {
+            alert(`Repository not found. Please check the URL and ensure the repository exists.`);
+        } else if (response.status === 401 || response.status === 403) {
+            alert(`Authentication error. ${type === 'github' ? 'GitHub' : 'GitLab'} API access denied. If this is a private repository, please provide a valid token.`);
+        } else {
+            alert(`Error accessing ${type === 'github' ? 'GitHub' : 'GitLab'} API: ${response.status} ${response.statusText}`);
         }
     }
 
@@ -260,42 +400,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return result;
     }
 
-    async function fetchFileContent(url) {
-        const isPrivate = document.getElementById('privateRepo').checked;
-        const token = isPrivate ? document.getElementById('githubToken').value.trim() : '';
-        const headers = new Headers({
-            'Accept': 'application/vnd.github.v3+json'
-        });
-        if (token) {
-            headers.set('Authorization', `token ${token}`);
+    async function fetchFileContent(url, headers) {
+        try {
+            const response = await fetch(url, { headers });
+            if (response.ok) {
+                return await response.text();
+            }
+            return null;
+        } catch {
+            return null;
         }
-        const response = await fetch(url, { 
-            headers,
-            method: 'GET'
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to fetch file content: ${response.status} - ${errorData.message || response.statusText}`);
-        }
-        const data = await response.json();
-        return atob(data.content);
     }
 
     function processFileContent(content, filepath) {
-        if (stripCommentsCheckbox.checked) {
+        if (stripCommentsCheckbox && stripCommentsCheckbox.checked) {
             content = stripComments(content, '.' + filepath.split('.').pop());
         }
-        
-        // Get the output pattern and replace variables
-        const outputPattern = document.getElementById('outputPattern').value;
-        const filename = filepath.split('/').pop();
-        const path = filepath.substring(0, filepath.length - filename.length);
-        
-        return outputPattern
-            .replace(/{path}/g, path)
-            .replace(/{filename}/g, filename)
-            .replace(/{content}/g, content)
-            .replace(/{newline}/g, '\n');
+        return content;
     }
 
     function isTextFile(filename) {
@@ -303,9 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
             '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.c', '.cpp', '.cs',
             '.html', '.css', '.php', '.rb', '.go', '.rs', '.swift', '.kt',
             '.scala', '.sh', '.bash', '.sql', '.r', '.m', '.h', '.hpp',
-            '.vue', '.xml', '.yaml', '.yml', '.json', '.md', '.txt', '.svg',
-            '.Dockerfile', '.less', '.sass', '.scss', '.txt', '.log', '.conf',
-            '.cu', '.cuh'
+            '.vue', '.xml', '.yaml', '.yml', '.json', '.md', '.txt', '.svg'
         ];
         const ext = '.' + filename.split('.').pop().toLowerCase();
         return textExtensions.includes(ext);
@@ -323,45 +442,32 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!line.trim()) continue;
             
             if (['.js', '.jsx', '.ts', '.tsx', '.java', '.c', '.cpp', '.cs', '.go', '.php'].includes(extension)) {
+                // Handle block comments
                 if (inBlockComment) {
                     if (line.includes('*/')) {
-                        line = line.substring(line.indexOf('*/') + 2);
                         inBlockComment = false;
+                        line = line.split('*/')[1];
                     } else {
                         continue;
                     }
                 }
                 
                 if (line.includes('/*')) {
-                    if (line.includes('*/')) {
-                        line = line.substring(0, line.indexOf('/*')) + 
-                              line.substring(line.indexOf('*/') + 2);
-                    } else {
-                        line = line.substring(0, line.indexOf('/*'));
-                        inBlockComment = true;
-                    }
+                    inBlockComment = true;
+                    line = line.split('/*')[0];
                 }
                 
-                if (!inBlockComment && line.includes('//')) {
-                    line = line.substring(0, line.indexOf('//'));
-                }
-            } else if (extension === '.py') {
-                if (line.includes('#')) {
-                    line = line.substring(0, line.indexOf('#'));
-                }
-            } else if (['.html', '.xml', '.svg'].includes(extension)) {
-                if (line.includes('<!--')) {
-                    if (line.includes('-->')) {
-                        line = line.substring(0, line.indexOf('<!--')) + 
-                              line.substring(line.indexOf('-->') + 3);
-                    } else {
-                        line = line.substring(0, line.indexOf('<!--'));
-                        inBlockComment = true;
-                    }
-                }
+                // Remove single-line comments
+                line = line.split('//')[0];
+            } else if (['.py', '.rb'].includes(extension)) {
+                line = line.split('#')[0];
+            } else if (extension === '.sql') {
+                line = line.split('--')[0];
             }
             
-            if (line.trim()) result.push(line);
+            if (line.trim()) {
+                result.push(line);
+            }
         }
         
         return result.join('\n');
@@ -369,81 +475,84 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateProgress(current, total) {
         const percentage = (current / total) * 100;
-        progressBar.style.width = `${percentage}%`;
+        progressBar.style.width = percentage + '%';
     }
 
     function displayResult() {
-        if (window.processedText) {
-            resultTextarea.value = window.processedText;
-        }
+        resultTextarea.value = window.processedText;
     }
 
     function formatNumber(num) {
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        } else if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'K';
-        }
-        return num.toLocaleString();
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function getModelLimits() {
-        const tokenLimit = parseInt(modelSelect?.value || '128000');
-        const charLimit = tokenLimit * 3.5; // Using 3.5 characters per token as an average
-        return { tokenLimit, charLimit };
+        const modelValue = modelSelect ? parseInt(modelSelect.value) : 128000;
+        return {
+            maxTokens: modelValue
+        };
     }
 
     function updateStats() {
-        const text = window.processedText;
-        const charCount = text.length;
-        const wordCount = text.trim().split(/\s+/).length;
-        const estimatedTokens = Math.ceil(charCount / 3.5); // Using 3.5 characters per token as an average
+        const totalChars = window.processedText.length;
+        const totalWords = window.processedText.split(/\s+/).length;
+        const totalLines = window.processedText.split('\n').length;
+        const estimatedTokens = Math.ceil(totalWords * 1.3);
         
-        const { tokenLimit, charLimit } = getModelLimits();
-        
-        resultStats.innerHTML = `
-            <div class="grid grid-cols-3 gap-8">
-                <div>
-                    <div class="text-sm font-medium mb-1">Characters</div>
-                    <div class="text-2xl font-bold">${formatNumber(charCount)} / ${formatNumber(charLimit)}</div>
-                </div>
-                <div>
-                    <div class="text-sm font-medium mb-1">Words</div>
-                    <div class="text-2xl font-bold">${formatNumber(wordCount)}</div>
-                </div>
-                <div>
-                    <div class="text-sm font-medium mb-1">Estimated Tokens</div>
-                    <div class="text-2xl font-bold">${formatNumber(estimatedTokens)} / ${formatNumber(tokenLimit)}</div>
-                </div>
-            </div>
-        `;
-
-        // Show warnings if limits are exceeded
-        if (charCount > charLimit || estimatedTokens > tokenLimit) {
-            tokenWarning.classList.remove('hidden');
-            tokenWarningStats.textContent = `
-                Characters: ${formatNumber(charCount)} / ${formatNumber(charLimit)}
-                Tokens: ${formatNumber(estimatedTokens)} / ${formatNumber(tokenLimit)}
+        if (resultStats) {
+            resultStats.innerHTML = `
+                <p>Processed ${formatNumber(window.processedFilesCount)} files</p>
+                <p>Total Characters: ${formatNumber(totalChars)}</p>
+                <p>Total Words: ${formatNumber(totalWords)}</p>
+                <p>Total Lines: ${formatNumber(totalLines)}</p>
+                <p>Estimated Tokens: ${formatNumber(estimatedTokens)}</p>
             `;
+        }
+
+        // Check token limits
+        const { maxTokens } = getModelLimits();
+        if (estimatedTokens > maxTokens && !tokenWarning.classList.contains('active')) {
+            if (tokenWarningStats) {
+                tokenWarningStats.textContent = `Estimated ${formatNumber(estimatedTokens)} tokens exceeds the model limit of ${formatNumber(maxTokens)} tokens.`;
+            }
+            tokenWarning.classList.remove('hidden');
+            tokenWarning.classList.add('active');
+            window.isProcessingCancelled = true;
         }
     }
 
     // Add copy to clipboard functionality
-    copyResultButton.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(resultTextarea.value);
-            const originalText = copyResultButton.innerHTML;
-            copyResultButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            copyResultButton.classList.remove('bg-[#2da44e]', 'hover:bg-[#2c974b]');
-            copyResultButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
-            setTimeout(() => {
-                copyResultButton.innerHTML = originalText;
-                copyResultButton.classList.remove('bg-gray-600', 'hover:bg-gray-700');
-                copyResultButton.classList.add('bg-[#2da44e]', 'hover:bg-[#2c974b]');
-            }, 2000);
-        } catch (err) {
-            console.error('Failed to copy text:', err);
-            alert('Failed to copy text to clipboard');
-        }
-    });
+    if (copyResultButton) {
+        copyResultButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(resultTextarea.value);
+                const originalText = copyResultButton.innerHTML;
+                copyResultButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => {
+                    copyResultButton.innerHTML = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy to clipboard');
+            }
+        });
+    }
+
+    // Token warning handlers
+    if (tokenWarningContinue) {
+        tokenWarningContinue.addEventListener('click', () => {
+            tokenWarning.classList.add('hidden');
+            tokenWarning.classList.remove('active');
+            window.isProcessingCancelled = false;
+            resultsSection.classList.remove('hidden');
+        });
+    }
+
+    if (tokenWarningCancel) {
+        tokenWarningCancel.addEventListener('click', () => {
+            tokenWarning.classList.add('hidden');
+            tokenWarning.classList.remove('active');
+            progressSection.classList.add('hidden');
+        });
+    }
 });

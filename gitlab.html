@@ -33,7 +33,7 @@
     </script>
     <script src="js/theme.js"></script>
     <script src="js/loader.js"></script>
-    <script defer src="js/gitlab.js"></script>
+    <script defer src="js/repo.js"></script>
 </head>
 
 <body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col">
@@ -48,10 +48,10 @@
                 <div class="mb-8">
                     <div class="flex gap-4">
                         <input type="text" 
-                               id="gitlabRepoUrl" 
+                               id="repoUrl" 
                                placeholder="Enter GitLab repository URL (e.g., https://gitlab.com/username/repo)" 
                                class="flex-grow p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
-                        <button id="processGitlabRepo" 
+                        <button id="processRepo" 
                                 class="px-6 py-3 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200">
                             Process Repository
                         </button>
@@ -74,7 +74,7 @@
                     <!-- Self-hosted Instance URL Input (hidden by default) -->
                     <div id="instanceUrlContainer" class="hidden mt-4">
                         <input type="text" 
-                               id="gitlabInstanceUrl" 
+                               id="instanceUrl" 
                                placeholder="e.g., https://gitlab.cern.ch" 
                                class="w-full p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
                     </div>
@@ -83,11 +83,32 @@
                 <!-- Settings Section -->
                 <div class="space-y-6">
                     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Authentication Settings</h3>
+                        <div class="mb-4">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="privateRepo" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Process Private Repository</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Enable this option if you need to process a private repository</p>
+                        </div>
+                        <div id="tokenInput" class="hidden">
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">GitLab Personal Access Token:</label>
+                            <input
+                                type="password"
+                                id="gitlabToken"
+                                placeholder="Enter your GitLab personal access token"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your token will be used only for repository access and won't be stored</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm mt-6">
                         <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Model Settings</h3>
                         <div>
                             <label class="block text-gray-700 dark:text-gray-300 mb-2">Select Model:</label>
                             <select 
-                                id="gitlab-modelSelect" 
+                                id="modelSelect" 
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             >
                                 <option value="128000">GPT-4o (128K tokens)</option>
@@ -106,55 +127,96 @@
                         </div>
                         <div class="mt-4">
                             <label class="inline-flex items-center">
-                                <input type="checkbox" id="gitlab-stripComments" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700" checked>
+                                <input type="checkbox" id="stripComments" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
                                 <span class="ml-2 text-gray-700 dark:text-gray-300">Strip comments from code files</span>
                             </label>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Removes comments from common programming languages to reduce token count</p>
+                        </div>
+                        <div class="mt-4">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" id="respectGitignore" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                                <span class="ml-2 text-gray-700 dark:text-gray-300">Respect .gitignore rules</span>
+                            </label>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Skip files that match patterns in the repository's .gitignore file</p>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">Additional ignore patterns:</label>
+                            <textarea
+                                id="ignorePatterns"
+                                placeholder="Enter additional patterns to ignore (one per line)"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                rows="3"
+                            ></textarea>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add custom patterns to ignore (e.g., *.log, test/*, etc.)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Format -->
+                <div class="space-y-6 mt-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Output Format</h3>
+                        <div class="mt-4">
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">Output Format Pattern:</label>
+                            <textarea
+                                id="outputPattern"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                rows="2"
+                            >// File: {path}{filename}{newline}{content}{newline}{newline}</textarea>
+                            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                <p class="font-semibold mb-1">Available variables:</p>
+                                <ul class="list-disc list-inside space-y-1">
+                                    <li>{path} - File path</li>
+                                    <li>{filename} - File name</li>
+                                    <li>{content} - File content</li>
+                                    <li>{newline} - New line character</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Progress Section -->
-                <div id="gitlab-progress" class="mt-8 hidden">
+                <div id="progress" class="mt-8 hidden">
                     <div class="relative w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div id="gitlab-progressBar" class="absolute top-0 h-full bg-[#2da44e] transition-all duration-300" style="width: 0%"></div>
+                        <div id="progressBar" class="absolute top-0 h-full bg-[#2da44e] transition-all duration-300" style="width: 0%"></div>
                     </div>
                     <p class="text-center mt-2 text-[#57606a] dark:text-[#8b949e]">
-                        Processing files... <span id="gitlab-current-file" class="italic"></span>
+                        Processing files... <span id="current-file" class="italic"></span>
                     </p>
                 </div>
 
                 <!-- Results Section -->
-                <div id="gitlab-results" class="hidden space-y-8">
+                <div id="results" class="hidden space-y-8">
                     <!-- File Tree -->
                     <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
                         <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Repository Structure</h3>
-                        <div id="gitlab-file-tree" class="text-sm font-mono text-[#24292f] dark:text-[#c9d1d9] overflow-x-auto"></div>
+                        <div id="file-tree" class="text-sm font-mono text-[#24292f] dark:text-[#c9d1d9] overflow-x-auto"></div>
                     </div>
 
                     <!-- Stats -->
                     <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
                         <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9] mb-4">Statistics</h3>
-                        <div id="gitlab-resultStats" class="text-sm text-[#57606a] dark:text-[#8b949e]"></div>
+                        <div id="resultStats" class="text-sm text-[#57606a] dark:text-[#8b949e]"></div>
                     </div>
 
                     <!-- Processed Text -->
                     <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9]">Processed Text</h3>
-                            <button id="gitlab-copyResult" class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
+                            <button id="copyResult" class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
                                 <i class="fas fa-copy"></i>
                                 Copy to Clipboard
                             </button>
                         </div>
-                        <textarea id="gitlab-result" 
+                        <textarea id="result" 
                                   class="w-full h-64 p-4 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] font-mono text-sm" 
                                   readonly></textarea>
                     </div>
                 </div>
 
                 <!-- Warning Modals -->
-                <div id="gitlab-size-warning" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div id="size-warning" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div class="bg-white dark:bg-[#161b22] p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
                         <h3 class="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Size Warning</h3>
                         <p class="text-[#24292f] dark:text-[#c9d1d9] mb-4">
@@ -167,16 +229,16 @@
                     </div>
                 </div>
 
-                <div id="gitlab-token-warning" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div id="token-warning" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div class="bg-white dark:bg-[#161b22] p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
                         <h3 class="text-xl font-bold text-red-600 dark:text-red-400 mb-4">Token Limit Warning</h3>
                         <p class="text-[#24292f] dark:text-[#c9d1d9] mb-4">
                             The processed content exceeds the model's token limit. Continuing may result in truncated or incomplete output.
                         </p>
-                        <div id="gitlab-token-warning-stats" class="text-sm text-[#57606a] dark:text-[#8b949e] mb-4"></div>
+                        <div id="token-warning-stats" class="text-sm text-[#57606a] dark:text-[#8b949e] mb-4"></div>
                         <div class="flex justify-end gap-4">
-                            <button id="gitlab-token-warning-cancel" class="px-4 py-2 text-[#24292f] dark:text-[#c9d1d9] hover:bg-gray-100 dark:hover:bg-[#21262d] rounded-md transition duration-200">Cancel</button>
-                            <button id="gitlab-token-warning-continue" class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white rounded-md transition duration-200">Continue</button>
+                            <button id="token-warning-cancel" class="px-4 py-2 text-[#24292f] dark:text-[#c9d1d9] hover:bg-gray-100 dark:hover:bg-[#21262d] rounded-md transition duration-200">Cancel</button>
+                            <button id="token-warning-continue" class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white rounded-md transition duration-200">Continue</button>
                         </div>
                     </div>
                 </div>

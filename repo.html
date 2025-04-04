@@ -207,12 +207,15 @@
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9]">Processed Text</h3>
                             <button id="copyResult" class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2">
-                                <i class="fas fa-copy"></i>
-                                Copy to Clipboard
+                                <i class="fas fa-copy"></i> Copy to Clipboard
                             </button>
                         </div>
                         <div id="resultStats" class="mb-4 text-[#57606a] dark:text-[#8b949e]"></div>
-                        <textarea id="result" class="w-full h-96 p-4 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] font-mono text-sm" readonly></textarea>
+                        <textarea
+                            id="result"
+                            class="w-full h-96 p-4 font-mono text-sm bg-[#f6f8fa] dark:bg-[#21262d] border border-[#d0d7de] dark:border-[#30363d] rounded-lg resize-y"
+                            readonly
+                        ></textarea>
                     </div>
                 </div>
             </div>
