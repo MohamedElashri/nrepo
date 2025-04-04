@@ -43,7 +43,7 @@
 </head>
 <body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col">
     <div id="header-container"></div>
-<!-- Main Content -->    
+    <!-- Main Content -->    
     <main class="flex-grow container mx-auto px-4 py-8">
         <div class="max-w-4xl mx-auto space-y-6">
             
@@ -105,7 +105,7 @@
                                 <input type="file" id="gitignore-input" accept=".gitignore" class="hidden" />
                             </div>
                         </div>
-                        <button id="clear-gitignore" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200 hidden">
+                        <button id="clear-gitignore" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors duration-200 hidden">
                             Clear
                         </button>
                     </div>
@@ -290,35 +290,45 @@ Thumbs.db
                 </div>
             </div>
 
+            <!-- Stats Section -->
             <div class="result-container hidden space-y-4">
-                <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+                <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
                     <div class="grid grid-cols-3 gap-4">
                         <div class="text-center">
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Characters</div>
-                            <div id="char-count" class="text-2xl font-semibold text-gray-800 dark:text-white">0 / 0</div>
+                            <div class="text-sm text-[#57606a] dark:text-[#8b949e]">Characters</div>
+                            <div id="char-count" class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9]">0 / 0</div>
                         </div>
                         <div class="text-center">
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Words</div>
-                            <div id="word-count" class="text-2xl font-semibold text-gray-800 dark:text-white">0</div>
+                            <div class="text-sm text-[#57606a] dark:text-[#8b949e]">Words</div>
+                            <div id="word-count" class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9]">0</div>
                         </div>
                         <div class="text-center">
-                            <div class="text-sm text-gray-600 dark:text-gray-400">Estimated Tokens</div>
-                            <div id="token-count" class="text-2xl font-semibold text-gray-800 dark:text-white">0 / 0</div>
+                            <div class="text-sm text-[#57606a] dark:text-[#8b949e]">Estimated Tokens</div>
+                            <div id="token-count" class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9]">0 / 0</div>
                         </div>
                     </div>
                 </div>
-                
-                <textarea 
-                    id="result" 
-                    readonly 
-                    class="w-full h-96 p-4 font-mono text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                ></textarea>
-                
-                <button 
-                    id="copy-btn"
-                    class="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200"
-                >Copy to Clipboard</button>
+
+                <!-- Processed Text Section -->
+                <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-[#24292f] dark:text-[#c9d1d9]">Processed Text</h3>
+                        <button 
+                            id="copy-btn"
+                            class="px-4 py-2 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200 flex items-center gap-2"
+                        >
+                            <i class="fas fa-copy"></i>
+                            Copy to Clipboard
+                        </button>
+                    </div>
+                    <textarea 
+                        id="result" 
+                        readonly 
+                        class="w-full h-96 p-4 rounded-md border border-[#d0d7de] dark:border-[#30363d] bg-white dark:bg-[#0d1117] text-[#24292f] dark:text-[#c9d1d9] font-mono text-sm"
+                    ></textarea>
+                </div>
             </div>
+
         </div>
     </main>
 

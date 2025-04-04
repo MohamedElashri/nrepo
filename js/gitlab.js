@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tokenWarningStats = document.getElementById('gitlab-token-warning-stats');
     const tokenWarningContinue = document.getElementById('gitlab-token-warning-continue');
     const tokenWarningCancel = document.getElementById('gitlab-token-warning-cancel');
+    const gitlabCopyResultButton = document.getElementById('gitlab-copyResult');
 
     // Global state
     window.processedText = '';
@@ -275,6 +276,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const { owner, repo } = parseGitlabUrl(repoUrl, instanceUrl);
         await processGitlabRepo(owner, repo, instanceUrl);
+    });
+
+    // Add copy to clipboard functionality
+    gitlabCopyResultButton.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(resultTextarea.value);
+            const originalText = gitlabCopyResultButton.innerHTML;
+            gitlabCopyResultButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            gitlabCopyResultButton.classList.remove('bg-[#2da44e]', 'hover:bg-[#2c974b]');
+            gitlabCopyResultButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            setTimeout(() => {
+                gitlabCopyResultButton.innerHTML = originalText;
+                gitlabCopyResultButton.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                gitlabCopyResultButton.classList.add('bg-[#2da44e]', 'hover:bg-[#2c974b]');
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+            alert('Failed to copy text to clipboard');
+        }
     });
 
     // Set default instance URL

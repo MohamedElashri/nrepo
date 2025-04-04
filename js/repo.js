@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsSection = document.getElementById('results');
     const resultStats = document.getElementById('resultStats');
     const resultTextarea = document.getElementById('result');
+    const copyResultButton = document.getElementById('copyResult');
     const outputPatternInput = document.getElementById('outputPattern');
     const stripCommentsCheckbox = document.getElementById('stripComments');
     const respectGitignoreCheckbox = document.getElementById('respectGitignore');
@@ -426,4 +427,23 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
     }
+
+    // Add copy to clipboard functionality
+    copyResultButton.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(resultTextarea.value);
+            const originalText = copyResultButton.innerHTML;
+            copyResultButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            copyResultButton.classList.remove('bg-[#2da44e]', 'hover:bg-[#2c974b]');
+            copyResultButton.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            setTimeout(() => {
+                copyResultButton.innerHTML = originalText;
+                copyResultButton.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                copyResultButton.classList.add('bg-[#2da44e]', 'hover:bg-[#2c974b]');
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+            alert('Failed to copy text to clipboard');
+        }
+    });
 });

@@ -653,6 +653,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const gitignoreDropZone = document.querySelector('.gitignore-drop-zone');
     const clearGitignoreBtn = document.getElementById('clear-gitignore');
     const gitignoreStatus = document.getElementById('gitignore-status');
+    const dropStatus = document.getElementById('drop-status');
+    const resultsSection = document.getElementById('results');
+    const resultStats = document.getElementById('resultStats');
+    const resultTextarea = document.getElementById('result');
+    const copyResultButton = document.getElementById('copyResult');
 
     // Verify elements are found
     console.log('File input found:', !!fileInput);
@@ -720,18 +725,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Copy button functionality
+    const copyButtonHandler = async () => {
+        try {
+            await navigator.clipboard.writeText(resultTextarea.value);
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            copyBtn.classList.remove('bg-[#2da44e]', 'hover:bg-[#2c974b]');
+            copyBtn.classList.add('bg-gray-600', 'hover:bg-gray-700');
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText;
+                copyBtn.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                copyBtn.classList.add('bg-[#2da44e]', 'hover:bg-[#2c974b]');
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text:', err);
+            alert('Failed to copy text to clipboard');
+        }
+    };
+
     if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-            const resultTextarea = document.getElementById('result');
-            if (resultTextarea) {
-                navigator.clipboard.writeText(resultTextarea.value);
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                }, 2000);
-            }
-        });
+        copyBtn.addEventListener('click', copyButtonHandler);
+    }
+
+    if (copyResultButton) {
+        copyResultButton.addEventListener('click', copyButtonHandler);
     }
 
     // Add model selection change handler
