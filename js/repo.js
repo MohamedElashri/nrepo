@@ -81,9 +81,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function parseRepoUrl(url, type = 'github', instanceUrl = '') {
         if (type === 'gitlab') {
             const baseUrl = instanceUrl || 'https://gitlab.com';
-            const urlWithoutBase = url.replace(baseUrl, '').replace(/^\//, '');
-            const [owner, repo] = urlWithoutBase.split('/');
-            return { owner, repo: repo.replace('.git', '') };
+            // Remove trailing slashes from baseUrl and potential .git extension from url
+            const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
+            const cleanUrl = url.replace(/\.git$/, '');
+            
+            // Extract the path after the base URL
+            let urlWithoutBase = '';
+            if (cleanUrl.startsWith(cleanBaseUrl)) {
+                urlWithoutBase = cleanUrl.substring(cleanBaseUrl.length).replace(/^\/+/, '');
+            } else {
+                // Try to parse as a direct owner/repo format
+                urlWithoutBase = cleanUrl.replace(/^https?:\/\/[^\/]+\//, '');
+            }
+            
+            // Split the path to extract owner and repo
+            const parts = urlWithoutBase.split('/').filter(Boolean);
+            if (parts.length >= 2) {
+                // Handle nested groups in GitLab (group/subgroup/project)
+                const repo = parts.pop();
+                const owner = parts.join('/');
+                return { owner, repo };
+            }
+            // If we can't parse properly, return empty values
+            return { owner: '', repo: '' };
         } else {
             const parts = new URL(url).pathname.split('/').filter(Boolean);
             return {
@@ -171,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function processRepository(type, config) {
         const { owner, repo, instanceUrl } = config;
-        const branchName = branchNameInput ? branchNameInput.value.trim() : 'main';
+        const branchName = branchNameInput ? branchNameInput.value.trim() : '';
         const isPrivate = privateRepoCheckbox ? privateRepoCheckbox.checked : false;
         
         // Get token based on type
@@ -232,7 +252,38 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // GitLab API
                 const baseUrl = instanceUrl || 'https://gitlab.com';
-                const projectId = encodeURIComponent(`${owner}/${repo}`);
+                
+                // We'll search for the project by name instead of directly using the path
+                // This is a more reliable approach for GitLab API
+                const searchUrl = `${baseUrl}/api/v4/projects?search=${encodeURIComponent(repo)}`;
+                
+                const searchResponse = await fetch(searchUrl, { headers });
+                if (!searchResponse.ok) {
+                    handleApiError(searchResponse, type);
+                    return;
+                }
+                
+                const searchResults = await searchResponse.json();
+                
+                // Find the exact project match
+                const projectMatch = searchResults.find(project => {
+                    const fullPath = project.path_with_namespace;
+                    return fullPath === `${owner}/${repo}` || 
+                           fullPath === `${owner}\\${repo}` || 
+                           project.path === repo && project.namespace.path === owner;
+                });
+                
+                if (!projectMatch) {
+                    console.error('Project not found in search results');
+                    alert('Repository not found. Please check the URL and ensure the repository exists.');
+                    progressSection.classList.add('hidden');
+                    return;
+                }
+                
+                // Use the numeric project ID which avoids encoding issues
+                const projectId = projectMatch.id;
+                
+                // Use numeric ID for all subsequent API calls
                 const projectUrl = `${baseUrl}/api/v4/projects/${projectId}`;
                 
                 const projectResponse = await fetch(projectUrl, { headers });
@@ -243,30 +294,72 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const projectData = await projectResponse.json();
-                targetBranch = branchName || projectData.default_branch;
+                
+                // Use different defaults based on repository type
+                const defaultBranch = type === 'gitlab' ? 'master' : 'main';
+                
+                // Use branch name from input if provided, otherwise use the project's default branch, or fallback to type-specific default
+                targetBranch = branchName || projectData.default_branch || defaultBranch;
                 
                 if (branchNameInput) {
-                    branchNameInput.placeholder = projectData.default_branch;
+                    // Set different placeholder based on repository type
+                    branchNameInput.placeholder = type === 'gitlab' ? 'master' : 'main';
                     if (!branchName) {
-                        branchNameInput.value = projectData.default_branch;
+                        branchNameInput.value = projectData.default_branch || (type === 'gitlab' ? 'master' : 'main');
                     }
                 }
                 
-                // Get the files recursively
                 const treeUrl = `${baseUrl}/api/v4/projects/${projectId}/repository/tree?recursive=true&ref=${targetBranch}&per_page=100`;
+                
                 const treeResponse = await fetch(treeUrl, { headers });
                 
                 if (!treeResponse.ok) {
-                    handleApiError(treeResponse, type);
-                    return;
+                    console.error('Tree fetch failed:', treeResponse.status, treeResponse.statusText);
+                    
+                    // If we get a 404 and user didn't explicitly specify a branch, try the alternate default
+                    if (treeResponse.status === 404 && !branchName) {
+                        const alternateDefault = targetBranch === 'main' ? 'master' : 'main';
+                        
+                        const altBranchUrl = `${baseUrl}/api/v4/projects/${projectId}/repository/tree?recursive=true&ref=${alternateDefault}&per_page=100`;
+                        try {
+                            const altResponse = await fetch(altBranchUrl, { headers });
+                            if (altResponse.ok) {
+                                targetBranch = alternateDefault;
+                                
+                                // Update branch name in UI
+                                if (branchNameInput) {
+                                    branchNameInput.value = alternateDefault;
+                                }
+                                
+                                const treeData = await altResponse.json();
+                                files = treeData.filter(item => item.type === 'blob').map(item => ({
+                                    path: item.path,
+                                    type: 'blob',
+                                    url: `${baseUrl}/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw?ref=${alternateDefault}`
+                                }));
+                            } else {
+                                // If alternate default also fails, show error
+                                handleApiError(treeResponse, type);
+                                return;
+                            }
+                        } catch (altError) {
+                            console.error(`Error trying alternate branch:`, altError);
+                            handleApiError(treeResponse, type);
+                            return;
+                        }
+                    } else {
+                        // User explicitly specified a branch or trying alternate default failed
+                        handleApiError(treeResponse, type);
+                        return;
+                    }
+                } else {
+                    const treeData = await treeResponse.json();
+                    files = treeData.filter(item => item.type === 'blob').map(item => ({
+                        path: item.path,
+                        type: 'blob',
+                        url: `${baseUrl}/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw?ref=${targetBranch}`
+                    }));
                 }
-                
-                const treeData = await treeResponse.json();
-                files = treeData.filter(item => item.type === 'blob').map(item => ({
-                    path: item.path,
-                    type: 'blob',
-                    url: `${baseUrl}/api/v4/projects/${projectId}/repository/files/${encodeURIComponent(item.path)}/raw?ref=${targetBranch}`
-                }));
             }
 
             if (files.length === 0) {
