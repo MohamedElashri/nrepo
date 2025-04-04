@@ -594,11 +594,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (resultStats) {
             resultStats.innerHTML = `
-                <p>Processed ${formatNumber(window.processedFilesCount)} files</p>
-                <p>Total Characters: ${formatNumber(totalChars)}</p>
-                <p>Total Words: ${formatNumber(totalWords)}</p>
-                <p>Total Lines: ${formatNumber(totalLines)}</p>
-                <p>Estimated Tokens: ${formatNumber(estimatedTokens)}</p>
+                <div class="mb-2 text-center text-[#57606a] dark:text-[#8b949e]">
+                    Processed ${formatNumber(window.processedFilesCount)} files
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-sm text-[#57606a] dark:text-[#8b949e]">Characters</div>
+                        <div class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9]">${formatNumber(totalChars)} / 448,000</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-[#57606a] dark:text-[#8b949e]">Words</div>
+                        <div class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9]">${formatNumber(totalWords)}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm text-[#57606a] dark:text-[#8b949e]">Estimated Tokens</div>
+                        <div class="text-2xl font-semibold text-[#24292f] dark:text-[#c9d1d9]">${formatNumber(estimatedTokens)} / ${formatNumber(getModelLimits().maxTokens)}</div>
+                    </div>
+                </div>
             `;
         }
 
