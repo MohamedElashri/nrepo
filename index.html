@@ -189,7 +189,7 @@
                     </label>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Skip files that match patterns in the repository's .gitignore file</p>
                 </div>
-                <div class="mt-4">
+                <div class="mt-4 mb-4">
                     <label class="block text-gray-700 dark:text-gray-300 mb-2">Additional ignore patterns:</label>
                     <textarea
                         id="ignore-patterns"
@@ -200,71 +200,7 @@
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add custom patterns to ignore (e.g., *.log, test/*, etc.)</p>
                 </div>
             </div>
-
-            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Filters</h3>
-                <div class="mb-4">
-                    <label class="inline-flex items-center">
-                        <input type="checkbox" id="use-gitignore" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
-                        <span class="ml-2 text-gray-700 dark:text-gray-300">Use .gitignore patterns if available</span>
-                    </label>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Automatically add patterns from .gitignore files found in the uploaded directory</p>
-                </div>
-                <div>
-                    <label class="block text-gray-700 dark:text-gray-300 mb-2">Exclude patterns (one per line):</label>
-                    <textarea 
-                        id="exclude-patterns" 
-                        rows="4" 
-                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    >node_modules/
-.git/
-.svn/
-.hg/
-.idea/
-.vscode/
-.vs/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.so
-*.dll
-*.dylib
-*.class
-*.exe
-*.obj
-*.o
-*.a
-*.lib
-*.egg
-*.egg-info/
-dist/
-build/
-coverage/
-.coverage
-.env
-.env.*
-*.log
-*.lock
-package-lock.json
-yarn.lock
-*.min.js
-*.min.css
-*.map
-vendor/
-.DS_Store
-Thumbs.db
-*.tmp
-*.temp
-*.swp
-*.swo
-*.bak
-*.cache
-*.sqlite
-*.sqlite3
-*.db</textarea>
-                </div>
-            </div>
+            
 
             <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Output Format</h3>
