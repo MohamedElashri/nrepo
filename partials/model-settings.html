@@ -60,3 +60,24 @@
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add custom patterns to ignore (e.g., *.log, test/*, etc.)</p>
     </div>
 </div>
+<script>
+// Ensure Claude 3.7 Sonnet is selected by default
+document.addEventListener('DOMContentLoaded', function() {
+    // This script is embedded in the model-settings partial
+    setTimeout(function() {
+        const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
+        if (modelSelect) {
+            // Find the Claude 3.7 Sonnet option
+            for (let i = 0; i < modelSelect.options.length; i++) {
+                if (modelSelect.options[i].text.includes('Claude 3.7 Sonnet')) {
+                    modelSelect.selectedIndex = i;
+                    // Trigger change event
+                    const event = new Event('change');
+                    modelSelect.dispatchEvent(event);
+                    break;
+                }
+            }
+        }
+    }, 100); // Small delay to ensure the select is fully loaded
+});
+</script>

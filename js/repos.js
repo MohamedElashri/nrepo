@@ -942,7 +942,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getModelLimits() {
         const modelSelect = document.getElementById('modelSelect') || document.getElementById('model-select');
-        const modelValue = modelSelect ? modelSelect.value : 'gpt-3.5-turbo';
+        const modelValue = modelSelect ? modelSelect.value : '200000';
+        
+        // Get the model name for display
+        let modelName = 'Claude 3.7 Sonnet (200K tokens)'; // Default model name
+        
+        if (modelSelect && modelSelect.selectedIndex >= 0) {
+            modelName = modelSelect.options[modelSelect.selectedIndex].text;
+        }
         
         // Estimated token count (characters / 4 is a rough approximation)
         const tokenCount = Math.ceil(window.processedText.length / 4);
@@ -965,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tokenLimit = !isNaN(modelValue) ? parseInt(modelValue) : (tokenLimits[modelValue] || 8192);
         
         return {
-            model: modelValue,
+            model: modelName,
             tokenCount: tokenCount,
             tokenLimit: tokenLimit  // Use the value from tokenLimits or the direct number
         };
@@ -1000,6 +1007,9 @@ document.addEventListener('DOMContentLoaded', function() {
             tokenClass = 'text-yellow-500 dark:text-yellow-400';
         }
         
+        // Always use "Claude 3.7 Sonnet" as the model name regardless of what's selected
+        const displayModelName = "Claude 3.7 Sonnet (200K tokens)";
+        
         // Update stats HTML
         resultStats.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1008,7 +1018,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p><span class="font-semibold">Characters:</span> ${formattedCharCount}</p>
                 </div>
                 <div>
-                    <p><span class="font-semibold">Model:</span> ${model}</p>
+                    <p><span class="font-semibold">Model:</span> ${displayModelName}</p>
                     <p>
                         <span class="font-semibold">Token estimate:</span> 
                         <span class="${tokenClass}">${formattedTokenCount} / ${formattedTokenLimit} (${tokenPercentage}%)</span>
