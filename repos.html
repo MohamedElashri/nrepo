@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="nrepo - GitHub Repository Integration for LLM Code Processing">
-    <meta name="keywords" content="github, source code, LLM, code processing, development tools, machine learning">
+    <meta name="description" content="nrepo - GitHub & GitLab Repository Integration for LLM Code Processing">
+    <meta name="keywords" content="github, gitlab, source code, LLM, code processing, development tools, machine learning, repository">
     <meta name="author" content="melashri.net">
     <meta name="robots" content="index, follow">
     
     <!-- Open Graph meta tags for social media -->
-    <meta property="og:title" content="nrepo - GitHub Repository Processing">
-    <meta property="og:description" content="Process GitHub repositories directly for Large Language Models. Enter a repository URL to begin processing.">
+    <meta property="og:title" content="nrepo - GitHub & GitLab Repository Processing">
+    <meta property="og:description" content="Process GitHub and GitLab repositories directly for Large Language Models with advanced error handling and encoding support.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://melashri.net/nrepo/repo">
+    <meta property="og:url" content="https://melashri.net/nrepo/repos">
     <meta property="og:site_name" content="nrepo">
     
-    <title>nrepo - GitHub Repository Processing</title>
+    <title>nrepo - GitHub & GitLab Repository Processing</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
@@ -34,25 +34,37 @@
     <script src="js/theme.js"></script>
     <script src="js/loader.js"></script>
     <script src="js/model-settings.js"></script>
-    <script defer src="js/repo.js"></script>
+    <script defer src="js/repos.js"></script>
 </head>
 
-<body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col" data-page-type="github">
+<body class="bg-white dark:bg-[#0d1117] min-h-screen flex flex-col" data-page-type="repos">
     <div id="header-container"></div>
 
     <main class="flex-grow container mx-auto px-4 py-8">
         <div class="max-w-4xl mx-auto">
             <div class="bg-white dark:bg-[#161b22] rounded-lg p-8 shadow-lg">
-                <h1 class="text-2xl font-bold mb-6 text-[#24292f] dark:text-[#c9d1d9]">Process GitHub Repository</h1>
+                <h1 class="text-2xl font-bold mb-6 text-[#24292f] dark:text-[#c9d1d9]">Process GitHub & GitLab Repositories</h1>
                 
-                <!-- GitHub Repository Input -->
-                <div class="mb-8">
+                <!-- Repository Platform Selector -->
+                <div class="mb-6">
+                    <div class="flex border-b border-gray-200 dark:border-gray-700">
+                        <button id="github-tab" class="px-6 py-3 text-sm font-medium text-center border-b-2 border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400 bg-transparent active">
+                            <i class="fab fa-github mr-2"></i>GitHub
+                        </button>
+                        <button id="gitlab-tab" class="px-6 py-3 text-sm font-medium text-center text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 bg-transparent">
+                            <i class="fab fa-gitlab mr-2"></i>GitLab
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- GitHub Repository Input Section -->
+                <div id="github-section" class="mb-8">
                     <div class="flex gap-4">
                         <input type="text" 
-                               id="repoUrl" 
+                               id="githubRepoUrl" 
                                placeholder="Enter GitHub repository URL (e.g., https://github.com/username/repo)" 
                                class="flex-grow p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
-                        <button id="processRepo" 
+                        <button id="processGithubRepo" 
                                 class="px-6 py-3 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200">
                             Process Repository
                         </button>
@@ -72,6 +84,54 @@
                     </div>
                 </div>
 
+                <!-- GitLab Repository Input Section (hidden by default) -->
+                <div id="gitlab-section" class="mb-8 hidden">
+                    <div class="flex gap-4">
+                        <input type="text" 
+                               id="gitlabRepoUrl" 
+                               placeholder="Enter GitLab repository URL (e.g., https://gitlab.com/username/repo)" 
+                               class="flex-grow p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
+                        <button id="processGitlabRepo" 
+                                class="px-6 py-3 bg-[#2da44e] hover:bg-[#2c974b] text-white font-medium rounded-lg transition-colors duration-200">
+                            Process Repository
+                        </button>
+                    </div>
+                    
+                    <p class="mt-2 text-sm text-[#57606a] dark:text-[#8b949e]">
+                        Enter a GitLab repository URL to process its contents for LLM context
+                    </p>
+
+                    <!-- Branch Name Input -->
+                    <div class="mt-4">
+                        <label class="block text-gray-700 dark:text-gray-300 mb-2">Branch Name:</label>
+                        <input
+                            type="text"
+                            id="branchName"
+                            placeholder="master"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Specify the branch to process (defaults to master for GitLab)</p>
+                    </div>
+
+                    <!-- Self-hosted Instance Toggle -->
+                    <div class="mt-4">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" 
+                                id="showInstanceUrl" 
+                                class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 bg-white dark:bg-gray-700">
+                            <span class="ml-2 text-gray-700 dark:text-gray-300">Using a self-hosted GitLab instance?</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Self-hosted Instance URL Input (hidden by default) -->
+                    <div id="instanceUrlContainer" class="hidden mt-4">
+                        <input type="text" 
+                                id="instanceUrl" 
+                                placeholder="e.g., https://gitlab.cern.ch" 
+                                class="w-full p-3 border rounded-lg bg-[#f6f8fa] dark:bg-[#21262d] border-[#d0d7de] dark:border-[#30363d] text-[#24292f] dark:text-[#c9d1d9] focus:outline-none focus:ring-2 focus:ring-[#2da44e]">
+                    </div>
+                </div>
+
                 <!-- Settings Section -->
                 <div class="space-y-6">
                     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
@@ -83,12 +143,26 @@
                             </label>
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Enable this option if you need to process a private repository</p>
                         </div>
-                        <div id="tokenInput" class="hidden">
+                        
+                        <!-- GitHub Token Input (shown when GitHub tab is active) -->
+                        <div id="githubTokenInput" class="hidden">
                             <label class="block text-gray-700 dark:text-gray-300 mb-2">GitHub Personal Access Token:</label>
                             <input
                                 type="password"
                                 id="githubToken"
                                 placeholder="Enter your GitHub personal access token"
+                                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your token will be used only for repository access and won't be stored</p>
+                        </div>
+                        
+                        <!-- GitLab Token Input (hidden by default) -->
+                        <div id="gitlabTokenInput" class="hidden">
+                            <label class="block text-gray-700 dark:text-gray-300 mb-2">GitLab Personal Access Token:</label>
+                            <input
+                                type="password"
+                                id="gitlabToken"
+                                placeholder="Enter your GitLab personal access token"
                                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             >
                             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Your token will be used only for repository access and won't be stored</p>

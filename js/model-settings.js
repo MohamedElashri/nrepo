@@ -96,8 +96,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         console.error('Could not find apply-ignore-patterns button');
                     }
-                } else if (pageType === 'github' || pageType === 'gitlab') {
-                    // In repo.html and gitlab.html, use camelCase IDs
+                } else if (pageType === 'github' || pageType === 'gitlab' || pageType === 'repos') {
+                    // In the repository pages, use camelCase IDs
                     adjustElementIds({
                         'model-select': 'modelSelect',
                         'strip-comments': 'stripComments',
@@ -222,6 +222,8 @@ __pycache__/
 .idea/
 dist/
 build/
+LICENSE
+LICENSE.md
 *.min.js
 *.min.css`;
 

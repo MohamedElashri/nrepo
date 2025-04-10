@@ -8,7 +8,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const response = await fetch(`${baseUrl}/components/header.html`);
             if (!response.ok) throw new Error(`Failed to load header`);
-            headerContainer.innerHTML = await response.text();
+            const headerHtml = await response.text();
+            
+            // Update links with baseUrl before inserting
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = headerHtml;
+            
+            // Fix all navigation links to include baseUrl
+            const links = tempDiv.querySelectorAll('a');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('/')) {
+                    link.setAttribute('href', `${baseUrl}/${href}`);
+                }
+            });
+            
+            headerContainer.innerHTML = tempDiv.innerHTML;
         } catch (error) {
             console.error('Error loading header:', error);
             headerContainer.innerHTML = `
@@ -30,7 +45,22 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             const response = await fetch(`${baseUrl}/components/footer.html`);
             if (!response.ok) throw new Error(`Failed to load footer`);
-            footerContainer.innerHTML = await response.text();
+            const footerHtml = await response.text();
+            
+            // Update links with baseUrl before inserting
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = footerHtml;
+            
+            // Fix all navigation links to include baseUrl
+            const links = tempDiv.querySelectorAll('a');
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('/')) {
+                    link.setAttribute('href', `${baseUrl}/${href}`);
+                }
+            });
+            
+            footerContainer.innerHTML = tempDiv.innerHTML;
         } catch (error) {
             console.error('Error loading footer:', error);
             footerContainer.innerHTML = `
