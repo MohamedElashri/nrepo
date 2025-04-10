@@ -199,73 +199,124 @@ const toggleStatus = (show, message = '') => {
 };
 
 const shouldIgnoreFile = (filePath) => {
-    const excludePatternsTextarea = document.getElementById('exclude-patterns');
-    const useGitignore = document.getElementById('use-gitignore')?.checked;
-    
     if (!filePath) return false;
     
-    // Normalize path to use forward slashes
-    filePath = filePath.replace(/\\/g, '/');
-    // Remove leading slash if present
-    filePath = filePath.replace(/^\//, '');
+    // Always ignore .git directory and other common unwanted files
+    if (filePath.includes('/.git/') || 
+        filePath.endsWith('.DS_Store') || 
+        filePath.endsWith('Thumbs.db')) {
+        return true;
+    }
     
-    const matchPattern = (pattern, path) => {
-        // Normalize pattern
-        pattern = pattern.trim().replace(/\\/g, '/');
-        
-        // Handle negation
-        if (pattern.startsWith('!')) {
-            return !matchPattern(pattern.slice(1), path);
-        }
-        
-        // Remove leading slash
-        pattern = pattern.replace(/^\//, '');
-        
-        // Handle directory-specific patterns (ending with /)
-        if (pattern.endsWith('/')) {
-            pattern = pattern.slice(0, -1);
-            if (!path.includes('/')) return false;
-        }
-        
-        // Convert gitignore globs to RegExp
-        const regexPattern = pattern
-            // Escape special regex chars except * and ?
-            .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-            // Convert gitignore globs to regex patterns
-            .replace(/\*/g, '.*')
-            .replace(/\?/g, '.')
-            // Handle double asterisk
-            .replace(/\.\*\.\*/g, '.*');
-        
-        const regex = new RegExp(`^${regexPattern}$|^${regexPattern}/|/${regexPattern}$|/${regexPattern}/`);
-        return regex.test(path);
-    };
+    // Skip non-text files by file extension detection
+    const ext = '.' + filePath.split('.').pop().toLowerCase();
+    const binaryExtensions = [
+        '.zip', '.gz', '.tar', '.rar', '.7z', 
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg', '.ico',
+        '.mp3', '.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.wav', '.flac',
+        '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.db', '.sqlite', '.sqlite3',
+        '.o', '.obj', '.class', '.pyc', '.pyd', '.pyo',
+        '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+        '.ttf', '.otf', '.woff', '.woff2'
+    ];
     
-    // Check custom exclude patterns
-    if (excludePatternsTextarea) {
-        const patterns = excludePatternsTextarea.value
-            .split('\n')
-            .map(p => p.trim())
-            .filter(p => p && !p.startsWith('#'));
-            
-        for (const pattern of patterns) {
-            if (matchPattern(pattern, filePath)) {
+    if (binaryExtensions.includes(ext)) {
+        return true;
+    }
+    
+    // Check gitignore rules
+    const useGitignore = document.getElementById('use-gitignore')?.checked || document.getElementById('respectGitignore')?.checked || false;
+    if (useGitignore && window.gitignorePatterns && window.gitignorePatterns.length > 0) {
+        for (const pattern of window.gitignorePatterns) {
+            if (minimatch(filePath, pattern)) {
                 return true;
             }
         }
     }
     
-    // Check gitignore patterns
-    if (useGitignore && window.gitignorePatterns) {
-        for (const pattern of window.gitignorePatterns) {
-            if (matchPattern(pattern, filePath)) {
-                return true;
+    // Get the current page type to determine which ID to use
+    const pageType = document.body.dataset.pageType;
+    let excludePatternsInput;
+    
+    if (pageType === 'github' || pageType === 'gitlab') {
+        excludePatternsInput = document.getElementById('ignorePatterns');
+    } else {
+        // Default to index page ID format
+        excludePatternsInput = document.getElementById('exclude-patterns');
+    }
+    
+    // If we can't find the element with the expected ID, try the other format as fallback
+    if (!excludePatternsInput) {
+        excludePatternsInput = document.getElementById('exclude-patterns') || document.getElementById('ignorePatterns');
+    }
+    
+    if (excludePatternsInput && excludePatternsInput.value.trim()) {
+        const customPatterns = excludePatternsInput.value.trim().split('\n').filter(Boolean);
+        
+        for (const pattern of customPatterns) {
+            const trimmedPattern = pattern.trim();
+            if (!trimmedPattern || trimmedPattern.startsWith('#')) continue;
+            
+            try {
+                // Try both the pattern as-is and with **/ prefix for matching anywhere in path
+                if (minimatch(filePath, trimmedPattern) || minimatch(filePath, `**/${trimmedPattern}`)) {
+                    console.log(`File ${filePath} matched ignore pattern: ${trimmedPattern}`);
+                    return true;
+                }
+            } catch (err) {
+                console.warn(`Invalid pattern: ${trimmedPattern}`, err);
             }
         }
     }
     
     return false;
 };
+
+// Minimatch function for gitignore-style pattern matching (simplified version)
+function minimatch(filePath, pattern) {
+    // Normalize paths to use forward slashes
+    filePath = filePath.replace(/\\/g, '/');
+    pattern = pattern.trim().replace(/\\/g, '/');
+    
+    // Remove leading slash if present
+    filePath = filePath.replace(/^\//, '');
+    pattern = pattern.replace(/^\//, '');
+    
+    // Handle negation
+    if (pattern.startsWith('!')) {
+        return !minimatch(filePath, pattern.slice(1));
+    }
+    
+    // Handle directory-specific patterns (ending with /)
+    if (pattern.endsWith('/')) {
+        pattern = pattern.slice(0, -1);
+        // Only match directories
+        if (!filePath.includes('/')) return false;
+    }
+    
+    // Convert gitignore globs to RegExp
+    let regexPattern = pattern
+        // Escape special regex chars except * and ?
+        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+        // Convert gitignore globs to regex patterns
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.');
+    
+    // Handle double asterisk (match any directory depth)
+    regexPattern = regexPattern.replace(/\.\*\.\*/g, '.*');
+    
+    // Create regexes for different pattern matching strategies
+    const exactMatch = new RegExp(`^${regexPattern}$`);
+    const startsWith = new RegExp(`^${regexPattern}/`);
+    const endsWith = new RegExp(`/${regexPattern}$`);
+    const contains = new RegExp(`/${regexPattern}/`);
+    
+    // Check all pattern variations
+    return exactMatch.test(filePath) || 
+           startsWith.test(filePath) || 
+           endsWith.test(filePath) || 
+           contains.test(filePath);
+}
 
 const processFile = async (file, filePath) => {
     if (window.isProcessingCancelled) return;
@@ -446,11 +497,15 @@ const processFiles = async (files) => {
     window.processedText = '';
     window.processedFilesCount = 0;
     window.totalFilesToProcess = files.length;
+    
+    // Store the original files for later reprocessing with different settings
+    window.originalFiles = Array.from(files);
 
     const loader = document.querySelector('.loader');
     const resultContainer = document.querySelector('.result-container');
     const currentFile = document.getElementById('current-file');
-
+    const filesCounter = document.getElementById('files-counter');
+    
     toggleStatus(true, 'Beginning File Processing...');
     if (loader) loader.classList.remove('hidden');
     if (resultContainer) resultContainer.classList.add('hidden');
@@ -529,12 +584,18 @@ const formatNumber = (num) => {
     return num.toLocaleString();
 };
 
+// Expose formatNumber to global scope
+window.formatNumber = formatNumber;
+
 const getModelLimits = () => {
-    const modelSelect = document.getElementById('model-select');
+    const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
     const tokenLimit = parseInt(modelSelect?.value || '128000');
     const charLimit = tokenLimit * 3.5; // Using 3.5 characters per token as an average
     return { tokenLimit, charLimit };
 };
+
+// Expose getModelLimits to global scope
+window.getModelLimits = getModelLimits;
 
 const updateStats = () => {
     console.log('Updating stats');
@@ -576,6 +637,9 @@ const updateStats = () => {
         }
     }
 };
+
+// Expose updateStats to global scope
+window.updateStats = updateStats;
 
 // Default exclude patterns
 const defaultExcludePatterns = `node_modules/
@@ -863,3 +927,178 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+const processFilesWithSettings = async (files) => {
+    if (!files || files.length === 0) {
+        console.error('No files to process');
+        return;
+    }
+    
+    const formatPattern = document.getElementById('format-pattern')?.value || '// File: {path}{filename}{newline}{content}{newline}{newline}';
+    const shouldStripComments = document.getElementById('strip-comments')?.checked || document.getElementById('stripComments')?.checked || false;
+    const excludePatternsInput = document.getElementById('exclude-patterns') || document.getElementById('ignorePatterns');
+    
+    const totalFiles = files.length;
+    let processedCount = 0;
+    let allText = '';
+    window.processedFilesCount = 0;
+    
+    console.log('Reprocessing files with updated settings:', {
+        totalFiles, 
+        stripComments: shouldStripComments, 
+        useGitignore: document.getElementById('use-gitignore')?.checked || document.getElementById('respectGitignore')?.checked,
+        excludePatterns: excludePatternsInput?.value || 'none'
+    });
+    
+    // Show status and loader
+    toggleStatus(true, 'Applying new settings...');
+    const loader = document.querySelector('.loader');
+    if (loader) loader.classList.remove('hidden');
+    
+    // Filter files first to only process those that shouldn't be ignored with current settings
+    const filesToProcess = Array.from(files).filter(file => {
+        const filePath = file.webkitRelativePath || file.name;
+        return !shouldIgnoreFile(filePath);
+    });
+    
+    console.log(`After filtering: Processing ${filesToProcess.length} out of ${files.length} files`);
+    
+    // Generate and display the file tree first
+    const root = createFileTree(filesToProcess);
+    
+    // Add tree structure to the beginning of the processed text
+    const treeStructure = '// This is the tree structure of the code:\n' + 
+                        generateHTML(root)
+                            .split('\n')
+                            .filter(line => line.trim())
+                            .map(line => '// ' + line)
+                            .join('\n') + 
+                        '\n\n// ======== FILE CONTENTS ========\n\n';
+    
+    // Start with the tree structure
+    allText = treeStructure;
+    
+    const promises = filesToProcess.map(file => {
+        return new Promise((resolve) => {
+            processedCount++;
+            updateProgress(processedCount, filesToProcess.length);
+            
+            const filePath = file.webkitRelativePath || file.name;
+            const fileName = file.name;
+            
+            // Skip non-text files unless it's a Jupyter notebook
+            const isJupyter = fileName.endsWith('.ipynb');
+            if (!isTextFile(fileName) && !isJupyter) {
+                console.log(`Skipping non-text file: ${filePath}`);
+                resolve();
+                return;
+            }
+            
+            // We already have the file's content in the file object from the original processing
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                let content = e.target.result;
+                
+                // Handle Jupyter notebooks
+                if (isJupyter) {
+                    try {
+                        content = parseJupyterNotebook(content);
+                    } catch (error) {
+                        console.error(`Error parsing Jupyter notebook ${filePath}:`, error);
+                        resolve();
+                        return;
+                    }
+                }
+                
+                // Strip comments if enabled - apply the current setting
+                if (shouldStripComments && isTextFile(fileName)) {
+                    const extension = '.' + fileName.split('.').pop();
+                    content = stripComments(content, extension);
+                }
+                
+                // Show current file in the UI
+                document.getElementById('current-file').textContent = filePath;
+                
+                // Format with the pattern
+                const formatted = formatPattern
+                    .replace(/{path}/g, filePath.substring(0, filePath.lastIndexOf('/') + 1))
+                    .replace(/{filename}/g, fileName)
+                    .replace(/{content}/g, content)
+                    .replace(/{newline}/g, '\n');
+                
+                allText += formatted;
+                window.processedFilesCount++;
+                resolve();
+            };
+            
+            reader.onerror = function() {
+                console.error(`Error reading file ${file.name}`);
+                resolve();
+            };
+            
+            reader.readAsText(file);
+        });
+    });
+    
+    // Handle completion of all file processing
+    Promise.all(promises).then(() => {
+        // Hide the loader and status
+        if (loader) loader.classList.add('hidden');
+        toggleStatus(false);
+        
+        // Store the processed text
+        window.processedText = allText;
+        
+        // Update the result display
+        const resultTextarea = document.getElementById('result');
+        if (resultTextarea) {
+            resultTextarea.value = allText;
+        }
+        
+        // Create and display the file tree with current ignore settings
+        displayFileTree(filesToProcess);
+        
+        // Update stats
+        updateStats();
+        
+        // Check if we exceed token limits
+        const { tokenLimit } = getModelLimits();
+        const tokens = Math.ceil((window.processedText || '').length / 3.5);
+        
+        if (tokens > tokenLimit) {
+            const tokenWarning = document.getElementById('token-warning');
+            const tokenWarningStats = document.getElementById('token-warning-stats');
+            
+            if (tokenWarning && tokenWarningStats) {
+                tokenWarningStats.textContent = `Estimated: ${formatNumber(tokens)} tokens / Model limit: ${formatNumber(tokenLimit)} tokens`;
+                tokenWarning.classList.remove('hidden');
+                
+                // Set up the warning buttons
+                const continueBtn = document.getElementById('token-warning-continue');
+                const cancelBtn = document.getElementById('token-warning-cancel');
+                
+                if (continueBtn) {
+                    continueBtn.onclick = function() {
+                        tokenWarning.classList.add('hidden');
+                    };
+                }
+                
+                if (cancelBtn) {
+                    cancelBtn.onclick = function() {
+                        tokenWarning.classList.add('hidden');
+                    };
+                }
+            }
+        } else {
+            // Hide the token warning if it's visible
+            const tokenWarning = document.getElementById('token-warning');
+            if (tokenWarning) {
+                tokenWarning.classList.add('hidden');
+            }
+        }
+    });
+};
+
+// Expose the function to the global scope
+window.processFilesWithSettings = processFilesWithSettings;
