@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // For each container, load the model settings
     containers.forEach(container => {
-        fetch('/partials/model-settings.html')
+        fetch('./partials/model-settings.html')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Failed to load model settings');
