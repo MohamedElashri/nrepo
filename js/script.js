@@ -588,9 +588,13 @@ const formatNumber = (num) => {
 window.formatNumber = formatNumber;
 
 const getModelLimits = () => {
-    const modelSelect = document.getElementById('model-select') || document.getElementById('modelSelect');
-    const tokenLimit = parseInt(modelSelect?.value || '128000');
-    const charLimit = tokenLimit * 3.5; // Using 3.5 characters per token as an average
+    const modelSelect = document.getElementById('model-select');
+    if (!modelSelect) return { tokenLimit: 128000, charLimit: 448000 };
+
+    const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+    const tokenLimit = parseInt(selectedOption.dataset.tokens || '128000');
+    const charLimit = parseInt(selectedOption.dataset.chars || '448000');
+    
     return { tokenLimit, charLimit };
 };
 

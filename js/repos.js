@@ -941,41 +941,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function getModelLimits() {
-        const modelSelect = document.getElementById('modelSelect') || document.getElementById('model-select');
-        const modelValue = modelSelect ? modelSelect.value : '200000';
+        const modelSelect = document.getElementById('model-select');
+        if (!modelSelect) return { tokenLimit: 128000, charLimit: 448000 };
+
+        const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+        const tokenLimit = parseInt(selectedOption.dataset.tokens || '128000');
+        const charLimit = parseInt(selectedOption.dataset.chars || '448000');
         
-        // Get the model name for display
-        let modelName = 'Claude 3.7 Sonnet (200K tokens)'; // Default model name
-        
-        if (modelSelect && modelSelect.selectedIndex >= 0) {
-            modelName = modelSelect.options[modelSelect.selectedIndex].text;
-        }
-        
-        // Estimated token count (characters / 4 is a rough approximation)
-        const tokenCount = Math.ceil(window.processedText.length / 4);
-        
-        // Token limits by model
-        const tokenLimits = {
-            'gpt-3.5-turbo': 16385,
-            'gpt-3.5-turbo-16k': 16385,
-            'gpt-4': 8192,
-            'gpt-4-32k': 32768,
-            'claude-instant-1': 100000,
-            'claude-2': 100000,
-            'gemini-pro': 32768,
-            'llama-2-70b': 4096,
-            'mistral': 8192,
-            '200000': 200000  // Add custom model with 200k tokens
-        };
-        
-        // If the model value is a number, use it directly as the token limit
-        const tokenLimit = !isNaN(modelValue) ? parseInt(modelValue) : (tokenLimits[modelValue] || 8192);
-        
-        return {
-            model: modelName,
-            tokenCount: tokenCount,
-            tokenLimit: tokenLimit  // Use the value from tokenLimits or the direct number
-        };
+        return { tokenLimit, charLimit };
     }
 
     function updateStats() {
