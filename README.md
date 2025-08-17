@@ -25,6 +25,8 @@ The tool provides customizable output formatting with variables like:
 ## Models
 I usually put the latest models or the models that I personally use or aware of so it is not exhaustive.
 
+For simplicity, I assume 1 token ~ 3.5 English characters (including spaces and punctuation), this is a conservative average rather than a hard rule, since tokenization varies by model, text, and encoding.
+
 ## Privacy
 
 `nrepo` processes all files locally in your browser, ensuring your source code remains private and secure.
