@@ -2,6 +2,11 @@
 
 `nrepo` is a web-based tool designed to prepare and combine source code for LLMs. It streamlines the process of processing multiple source files into an optimized text format, making it easier to work with code in LLM contexts. This is also my personal fork of [dropnread](https://dropnread.io/) project to prepare source code for LLMs. 
 
+## Try it 
+
+I host an instance of `nrepo` at [nrepo](https://melashri.com/nrepo). It is hosted on Github Pages and is being built from the main  branch of this repository.
+
+
 ## Usage
 
 Using `nrepo` is straightforward:
