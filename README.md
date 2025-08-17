@@ -4,7 +4,7 @@
 
 ## Try it 
 
-I host an instance of `nrepo` at [nrepo](https://melashri.com/nrepo). It is hosted on Github Pages and is being built from the main  branch of this repository.
+I host an instance of `nrepo` at [https://melashri.net/nrepo](https://melashri.net/nrepo/). It is hosted on GitHub Pages and is being built from the main  branch of this repository.
 
 
 ## Usage
