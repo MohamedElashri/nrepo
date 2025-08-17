@@ -1,10 +1,10 @@
 # nrepo
 
-nrepo is a web-based tool designed to prepare and combine source code for LLMs. It streamlines the process of processing multiple source files into an optimized text format, making it easier to work with code in LLM contexts.This is also my personal fork of [dropnread](https://dropnread.io/) project to prepare source code for LLMs. 
+`nrepo` is a web-based tool designed to prepare and combine source code for LLMs. It streamlines the process of processing multiple source files into an optimized text format, making it easier to work with code in LLM contexts. This is also my personal fork of [dropnread](https://dropnread.io/) project to prepare source code for LLMs. 
 
 ## Usage
 
-Using nrepo is straightforward:
+Using `nrepo` is straightforward:
 
 1. Select your target LLM model and its token limit
 2. Choose whether to strip comments from code files
@@ -22,9 +22,12 @@ The tool provides customizable output formatting with variables like:
 - {content} - File content
 - {newline} - New line character
 
+## Models
+I usually put the latest models or the models that I personally use or aware of so it is not exhaustive.
+
 ## Privacy
 
-nrepo processes all files locally in your browser, ensuring your source code remains private and secure.
+`nrepo` processes all files locally in your browser, ensuring your source code remains private and secure.
 
 
 ## License
