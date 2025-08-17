@@ -1,7 +1,7 @@
 
 const models = [
-    { name: "GPT-5 Fast", value: "gpt-5-fast", tokens: 32000, chars: 112000 },
     { name: "GPT-4o", value: "gpt-4o", tokens: 128000, chars: 448000 },
+    { name: "GPT-5 Fast", value: "gpt-5-fast", tokens: 32000, chars: 112000 },
     { name: "GPT-5 Thinking", value: "gpt-5-thinking", tokens: 196000, chars: 686000},
     { name: "GPT-5 Pro", value: "gpt-5-pro", tokens: 400000, chars: 1400000 },
     { name: "OpenAI o3", value: "openai-o3", tokens: 200000, chars: 700000 },
